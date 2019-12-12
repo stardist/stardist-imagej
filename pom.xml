@@ -106,5 +106,13 @@
 			<groupId>net.imagej</groupId>
 			<artifactId>imagej-legacy</artifactId>
 		</dependency>
+		<!-- Clipper -->
+		<dependency>
+			<groupId>de.lighti</groupId>
+			<artifactId>Clipper</artifactId>
+			<version>6.4.2</version>
+			<scope>system</scope>
+			<systemPath>${basedir}/lib/clipper-6.4.2.jar</systemPath>
+		</dependency>
 	</dependencies>
 </project>
