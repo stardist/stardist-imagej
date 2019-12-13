@@ -1,0 +1,62 @@
+name: 2D_dsb2018
+description: StarDist 2D Model
+
+
+format_version: 0.1.0
+language: java
+framework: tensorflow
+
+source: ./saved_model.pb
+# kwargs: {}
+
+inputs:
+  - name: input
+    axes: byxc
+    data_type: float32
+    data_range: [-inf, inf]
+    shape:
+      min: [1, 8, 8, 1]
+      step: [null, 8, 8, 0]
+
+outputs:
+  - name: prob
+    axes: byxc
+    data_type: float32
+    data_range: [0, 1]
+    shape:
+      reference_input: input
+      scale: [1, 1, 1, 1]
+      offset: [0, 0, 0, 0]
+      halo: [0, 47, 47, 0]
+  - name: dist
+    axes: byxc
+    data_type: float32
+    data_range: [0, inf]
+    shape:
+      reference_input: input
+      scale: [1, 1, 1, 32]
+      offset: [0, 0, 0, 0]
+      halo: [0, 47, 47, 0]
+
+prediction:
+  weights:
+    source: ./variables/ # folder
+    # hash: {md5: TODO}
+  # dependencies: maven:../../../../pom.xml
+  preprocess:
+    - spec: net.imagej.modelzoo.transform.normalize.PercentileNormalizer
+      kwargs:
+        {
+          data: [0],
+          min: 1.0,
+          max: 99.8
+        }
+  postprocess:
+    - spec: de.csbdresden.StarDistNMS2D
+      kwargs:
+        {
+          probDs: [0], # names would be better here?
+          distDs: [1],
+          probThresh: 0.417819,
+          nmsThresh: 0.5
+        }
