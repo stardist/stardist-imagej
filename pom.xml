@@ -85,7 +85,7 @@
 
 	<properties>
 		<package-name>de.csbdresden</package-name>
-		<main-class>de.csbdresden.StarDist</main-class>
+		<main-class>de.csbdresden.StarDistNMS2D</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Uwe Schmidt, Martin Weigert</license.copyrightOwners>
 	</properties>

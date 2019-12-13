@@ -21,7 +21,7 @@ import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 
 @Plugin(type = Command.class, menuPath = "Plugins > StarDist > 2D Non-maximum Suppression", label = "StarDist 2D NMS")
-public class StarDist<T extends RealType<T>> implements Command {
+public class StarDistNMS2D<T extends RealType<T>> implements Command {
 
     @Parameter(label="Probability/Score Image")
     private Dataset probDs;
@@ -42,7 +42,7 @@ public class StarDist<T extends RealType<T>> implements Command {
     private boolean verbose = false;
 
     @Parameter(label="Output Kind", choices={"ROI Manager","Label Image","Both"})
-    private String outputKind;
+    private String outputKind = "ROI Manager";
 
     @Parameter
     private UIService uiService;
@@ -134,8 +134,8 @@ public class StarDist<T extends RealType<T>> implements Command {
         ij.launch(args);
         // ij.ui().showUI();
         
-        Dataset probDs = ij.scifio().datasetIO().open(StarDist.class.getClassLoader().getResource("blobs_prob.tif").getFile());
-        Dataset distDs = ij.scifio().datasetIO().open(StarDist.class.getClassLoader().getResource("blobs_dist.tif").getFile());
+        Dataset probDs = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_prob.tif").getFile());
+        Dataset distDs = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_dist.tif").getFile());
 
         ij.ui().show(probDs);
         ij.ui().show(distDs);
@@ -143,7 +143,7 @@ public class StarDist<T extends RealType<T>> implements Command {
         final HashMap<String, Object> params = new HashMap<>();
         params.put("probDs", probDs);
         params.put("distDs", distDs);
-        ij.command().run(StarDist.class, true, params);
+        ij.command().run(StarDistNMS2D.class, true, params);
 
         IJ.run("Tile");                
     }
