@@ -55,6 +55,11 @@
 			<url>https://github.com/HedgehogCode</url>
 			<roles><role>developer</role></roles>
 		</contributor>
+		<contributor>
+			<name>Deborah Schmidt</name>
+			<url>https://github.com/frauzufall</url>
+			<roles><role>reviewer</role></roles>
+		</contributor>
 	</contributors>
 
 	<mailingLists>
@@ -112,7 +117,7 @@
 			<artifactId>Clipper</artifactId>
 			<version>6.4.2</version>
 			<scope>system</scope>
-			<systemPath>${basedir}/lib/clipper-6.4.2.jar</systemPath>
+			<systemPath>${basedir}/lib/Clipper-6.4.2.jar</systemPath>
 		</dependency>
 	</dependencies>
 </project>
