@@ -65,8 +65,8 @@ public class Candidates {
                     for (int k = 0; k < nrays; k++) {
                         s.setPosition(k, 2);
                         FloatType d = s.get();
-                        long x = (long) Math.round(i + d.getRealDouble() * Math.cos(phis[k]));
-                        long y = (long) Math.round(j + d.getRealDouble() * Math.sin(phis[k]));
+                        long x = Math.round(i + d.getRealDouble() * Math.cos(phis[k]));
+                        long y = Math.round(j + d.getRealDouble() * Math.sin(phis[k]));
                         xmin = Math.min(xmin,x);
                         ymin = Math.min(ymin,y);
                         xmax = Math.max(xmax,x);

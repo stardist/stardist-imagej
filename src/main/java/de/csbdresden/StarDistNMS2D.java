@@ -1,21 +1,27 @@
 package de.csbdresden;
 
 import java.util.HashMap;
+import java.util.List;
 
+import org.scijava.ItemIO;
 import org.scijava.command.Command;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
 import ij.IJ;
+import ij.ImagePlus;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
+import ij.process.ImageProcessor;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imagej.axis.Axes;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
@@ -28,7 +34,10 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
 
     @Parameter(label="Distance Image")
     private Dataset dist;
-    
+
+    @Parameter(label="Label Image", type=ItemIO.OUTPUT)
+    private Img<?> label;
+
     @Parameter(label="Probability/Score Threshold", stepSize="0.1")
     private double probThresh = 0.5;
 
@@ -41,9 +50,12 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     @Parameter(label="Verbose", description="Verbose output")
     private boolean verbose = false;
 
-//    @Parameter(label="Output Kind", choices={"ROI Manager","Label Image","Both"})
-    private String outputKind = "ROI Manager";
+    @Parameter(label="Output Type", choices={"ROI Manager","Label Image","Both"})
+    private String outputType = "ROI Manager";
 
+    @Parameter
+    private LogService log;
+    
 //    @Parameter
 //    private UIService uiService;
 //
@@ -53,15 +65,13 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
 //    @Parameter
 //    private CommandService commandService;
 
-    @Parameter
-    private LogService log;
-    
     
     private boolean exportPointRois = false;
-    
     private boolean exportBboxRois = false;
     
     private RoiManager roiManager = null;
+    private ImagePlus labelImage = null;
+    private int labelId = 1;
     
     
     @Override
@@ -91,7 +101,13 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
                 log.info(String.format("%d polygon candidates, %d remain after non-maximum suppression\n", polygons.getSorted().size(), polygons.getWinner().size()));
             export(polygons, 0);
         }
+        
+        if (outputType.equals("Label Image") || outputType.equals("Both")) {
+            // IJ.run(labelImage, "glasbey inverted", "");
+            label = ImageJFunctions.wrap(labelImage);
+        }
     }
+    
     
     private void checkInputs() {
          if (!( (prob.numDimensions() == 2 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y) ||
@@ -114,22 +130,21 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
          if (!(0 <= nmsThresh && nmsThresh < 1))
              throw new IllegalArgumentException("NMS Threshold must be in interval [0,1).");
          
-         // TODO: if (!(excludeBoundary >= 0 && 2*excludeBoundary < min size of any x,y dimension)) ...
-
-         // TODO: outputKind must be one of {"ROI Manager","Label Image","Both"}
+         if (!(outputType.equals("ROI Manager") || outputType.equals("Label Image") || outputType.equals("Both")))
+             throw new IllegalArgumentException("Output type must be one of {\"ROI Manager\", \"Label Image\", \"Both\"}.");
          
          if (verbose) {
              log.info(String.format("probThresh = %f\n", probThresh));
              log.info(String.format("nmsThresh = %f\n", nmsThresh));
              log.info(String.format("excludeBoundary = %d\n", excludeBoundary));
              log.info(String.format("verbose = %s\n", verbose));
-             log.info(String.format("outputKind = %s\n", outputKind));
+             log.info(String.format("outputKind = %s\n", outputType));
          }
     }
     
     
     private void export(Candidates polygons, int framePosition) {
-        switch (outputKind) {
+        switch (outputType) {
         case "ROI Manager":
             exportROIs(polygons, framePosition);
             break;
@@ -140,6 +155,8 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
             exportROIs(polygons, framePosition);
             exportLabelImage(polygons, framePosition);
             break;
+        default:
+            log.error(String.format("Unknown output type \"%s\"", outputType));
         }
     }
     
@@ -148,6 +165,7 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
         if (roiManager == null) {
             IJ.run("ROI Manager...", "");
             roiManager = RoiManager.getInstance();
+            roiManager.reset(); // clear all rois
         }
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(i));
@@ -173,7 +191,20 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     
     
     private void exportLabelImage(Candidates polygons, int framePosition) {
-        log.warn("Label image output not implemented");
+        if (labelImage == null)
+            labelImage = IJ.createImage("Labeling", "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
+        if (prob.getFrames() > 1)
+            labelImage.setT(framePosition);
+        final ImageProcessor ip = labelImage.getProcessor();        
+        final List<Integer> winner = polygons.getWinner();
+        final int numWinners = winner.size();
+        // winners are ordered by score -> draw from last to first to give priority to higher scores in case of overlaps
+        for (int i = numWinners-1; i >= 0; i--) {
+            final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(winner.get(i)));
+            ip.setColor(labelId+i);
+            ip.fill(polyRoi);
+        }
+        labelId += numWinners;
     }
     
 
@@ -192,7 +223,7 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
         params.put("dist", dist);
         ij.command().run(StarDistNMS2D.class, true, params);
 
-        IJ.run("Tile");                
+        IJ.run("Tile");
     }
 
 }
