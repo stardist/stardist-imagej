@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
+import org.scijava.log.LogService;
+
 import de.lighti.clipper.Clipper;
 import de.lighti.clipper.DefaultClipper;
 import de.lighti.clipper.Path;
@@ -26,18 +28,20 @@ public class Candidates {
     private final List<Integer> winner = new ArrayList<>();
     private final boolean[] suppressed;
     private final boolean verbose;
+    private final LogService log;
     
     public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist) {
         this(prob, dist, 0.4);
     }
 
     public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist, double threshold) {
-        this(prob, dist, threshold, 2, false);
+        this(prob, dist, threshold, 2, null);
     }
 
-    public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist, double threshold, int b, boolean verbose) {        
+    public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist, double threshold, int b, LogService log) {        
         final long start = System.currentTimeMillis();
-        this.verbose = verbose;
+        this.verbose = log != null;
+        this.log = log;
         
         final long[] shape = Intervals.dimensionsAsLongArray(dist);
         final int ndim = shape.length;
@@ -81,7 +85,7 @@ public class Candidates {
         suppressed = new boolean[polygons.size()];
         
         if (verbose)
-            System.out.printf("Candidates constructor took %d ms\n", System.currentTimeMillis() - start);
+            log.info(String.format("Candidates constructor took %d ms\n", System.currentTimeMillis() - start));
     }
     
     public void nms_v0(final double threshold) {
@@ -107,7 +111,7 @@ public class Candidates {
             }
         }
         if (verbose)
-            System.out.printf("Candidates NMS took %d ms\n", System.currentTimeMillis() - start);
+            log.info(String.format("Candidates NMS took %d ms\n", System.currentTimeMillis() - start));
     }
 
     public void nms(final double threshold) {
@@ -137,7 +141,7 @@ public class Candidates {
             });
         }
         if (verbose)
-            System.out.printf("Candidates NMS took %d ms\n", System.currentTimeMillis() - start);
+            log.info(String.format("Candidates NMS took %d ms\n", System.currentTimeMillis() - start));
     }
 
     private double poly_intersection_area(final Path a, final Path b) {

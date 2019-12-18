@@ -3,10 +3,9 @@ package de.csbdresden;
 import java.util.HashMap;
 
 import org.scijava.command.Command;
-import org.scijava.command.CommandService;
+import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import org.scijava.ui.UIService;
 
 import ij.IJ;
 import ij.gui.PointRoi;
@@ -16,7 +15,6 @@ import ij.plugin.frame.RoiManager;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imagej.axis.Axes;
-import net.imagej.ops.OpService;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -26,10 +24,10 @@ import net.imglib2.view.Views;
 public class StarDistNMS2D<T extends RealType<T>> implements Command {
 
     @Parameter(label="Probability/Score Image")
-    private Dataset probDs;
+    private Dataset prob;
 
     @Parameter(label="Distance Image")
-    private Dataset distDs;
+    private Dataset dist;
     
     @Parameter(label="Probability/Score Threshold", stepSize="0.1")
     private double probThresh = 0.5;
@@ -40,21 +38,24 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     @Parameter(label="Boundary Exclusion", stepSize="1", min="0")
     private int excludeBoundary = 2;
 
-    @Parameter(label="Verbose", description = "Verbose output")
+    @Parameter(label="Verbose", description="Verbose output")
     private boolean verbose = false;
 
-    @Parameter(label="Output Kind", choices={"ROI Manager","Label Image","Both"})
+//    @Parameter(label="Output Kind", choices={"ROI Manager","Label Image","Both"})
     private String outputKind = "ROI Manager";
 
-    @Parameter
-    private UIService uiService;
+//    @Parameter
+//    private UIService uiService;
+//
+//    @Parameter
+//    private OpService opService;
+//
+//    @Parameter
+//    private CommandService commandService;
 
     @Parameter
-    private OpService opService;
-
-    @Parameter
-    private CommandService commandService;
-
+    private LogService log;
+    
     
     private boolean exportPointRois = false;
     
@@ -65,54 +66,65 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     
     @Override
     public void run() {
+        checkInputs();
+        
         @SuppressWarnings("unchecked")
-        final RandomAccessibleInterval<FloatType> prob = (RandomAccessibleInterval<FloatType>) probDs.getImgPlus();
+        final RandomAccessibleInterval<FloatType> probRAI = (RandomAccessibleInterval<FloatType>) prob.getImgPlus();
         @SuppressWarnings("unchecked")
-        final RandomAccessibleInterval<FloatType> dist = (RandomAccessibleInterval<FloatType>) distDs.getImgPlus();
-        
-        if (!( (probDs.numDimensions() == 2 && probDs.axis(0).type() == Axes.X && probDs.axis(1).type() == Axes.Y) ||
-               (probDs.numDimensions() == 3 && probDs.axis(0).type() == Axes.X && probDs.axis(1).type() == Axes.Y && probDs.axis(2).type() == Axes.TIME) ))
-            throw new IllegalArgumentException("Probability/Score must be a 2D image or timelapse");
-
-        if (!( (distDs.numDimensions() == 3 && distDs.axis(0).type() == Axes.X && distDs.axis(1).type() == Axes.Y && distDs.axis(2).type() == Axes.CHANNEL && distDs.getChannels() >= 3) ||
-               (distDs.numDimensions() == 4 && distDs.axis(0).type() == Axes.X && distDs.axis(1).type() == Axes.Y && distDs.axis(2).type() == Axes.CHANNEL && distDs.getChannels() >= 3 && distDs.axis(3).type() == Axes.TIME) ))
-            throw new IllegalArgumentException("Distance must be a 2D image or timelapse with at least three channels");
-        
-        if ((probDs.numDimensions() + 1) != distDs.numDimensions())
-            throw new IllegalArgumentException("Axes of Probability/Score and Distance not compatible");
-        
-        final boolean isTimelapse = probDs.numDimensions() == 3;
-        
-        if (isTimelapse && probDs.getFrames() != distDs.getFrames())
-            throw new IllegalArgumentException("Number of frames of Probability/Score and Distance differ");
-        
-        if (verbose) {
-            System.out.printf("probThresh = %f\n", probThresh);
-            System.out.printf("nmsThresh = %f\n", nmsThresh);
-            System.out.printf("excludeBoundary = %d\n", excludeBoundary);
-            System.out.printf("verbose = %s\n", verbose);
-        }
+        final RandomAccessibleInterval<FloatType> distRAI = (RandomAccessibleInterval<FloatType>) dist.getImgPlus();
+                
+        final long numFrames = prob.getFrames();
+        final boolean isTimelapse = numFrames > 1;
         
         if (isTimelapse) {
-            final long numFrames = probDs.getFrames();
             for (int t = 0; t < numFrames; t++) {
-                final Candidates polygons = new Candidates(Views.hyperSlice(prob,2,t), Views.hyperSlice(dist,3,t), probThresh, excludeBoundary, verbose);
+                final Candidates polygons = new Candidates(Views.hyperSlice(probRAI,2,t), Views.hyperSlice(distRAI,3,t), probThresh, excludeBoundary, verbose ? log : null);
                 polygons.nms(nmsThresh);
-                if (verbose) {
-                    System.out.printf("frame %04d: %d polygon candidates before non-maximum suppression\n", t, polygons.getSorted().size());
-                    System.out.printf("frame %04d: %d polygons remain after non-maximum suppression\n", t, polygons.getWinner().size());
-                }
+                if (verbose)
+                    log.info(String.format("frame %03d: %d polygon candidates, %d remain after non-maximum suppression\n", t, polygons.getSorted().size(), polygons.getWinner().size()));
                 export(polygons, 1+t);
             }
         } else {
-            final Candidates polygons = new Candidates(prob, dist, probThresh, excludeBoundary, verbose);
+            final Candidates polygons = new Candidates(probRAI, distRAI, probThresh, excludeBoundary, verbose ? log : null);
             polygons.nms(nmsThresh);
-            if (verbose) {
-                System.out.printf("%d polygon candidates before non-maximum suppression\n", polygons.getSorted().size());
-                System.out.printf("%d polygons remain after non-maximum suppression\n", polygons.getWinner().size());
-            }
+            if (verbose)
+                log.info(String.format("%d polygon candidates, %d remain after non-maximum suppression\n", polygons.getSorted().size(), polygons.getWinner().size()));
             export(polygons, 0);
         }
+    }
+    
+    private void checkInputs() {
+         if (!( (prob.numDimensions() == 2 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y) ||
+                (prob.numDimensions() == 3 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y && prob.axis(2).type() == Axes.TIME) ))
+             throw new IllegalArgumentException("Probability/Score must be a 2D image or timelapse");
+
+         if (!( (dist.numDimensions() == 3 && dist.axis(0).type() == Axes.X && dist.axis(1).type() == Axes.Y && dist.axis(2).type() == Axes.CHANNEL && dist.getChannels() >= 3) ||
+                (dist.numDimensions() == 4 && dist.axis(0).type() == Axes.X && dist.axis(1).type() == Axes.Y && dist.axis(2).type() == Axes.CHANNEL && dist.getChannels() >= 3 && dist.axis(3).type() == Axes.TIME) ))
+             throw new IllegalArgumentException("Distance must be a 2D image or timelapse with at least three channels");
+         
+         if ((prob.numDimensions() + 1) != dist.numDimensions())
+             throw new IllegalArgumentException("Axes of Probability/Score and Distance not compatible");
+         
+         if (prob.getWidth() != dist.getWidth() || prob.getHeight() != dist.getHeight())
+             throw new IllegalArgumentException("Width or height of Probability/Score and Distance differ");
+         
+         if (prob.getFrames() != dist.getFrames())
+             throw new IllegalArgumentException("Number of frames of Probability/Score and Distance differ");
+
+         if (!(0 <= nmsThresh && nmsThresh < 1))
+             throw new IllegalArgumentException("NMS Threshold must be in interval [0,1).");
+         
+         // TODO: if (!(excludeBoundary >= 0 && 2*excludeBoundary < min size of any x,y dimension)) ...
+
+         // TODO: outputKind must be one of {"ROI Manager","Label Image","Both"}
+         
+         if (verbose) {
+             log.info(String.format("probThresh = %f\n", probThresh));
+             log.info(String.format("nmsThresh = %f\n", nmsThresh));
+             log.info(String.format("excludeBoundary = %d\n", excludeBoundary));
+             log.info(String.format("verbose = %s\n", verbose));
+             log.info(String.format("outputKind = %s\n", outputKind));
+         }
     }
     
     
@@ -161,27 +173,23 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     
     
     private void exportLabelImage(Candidates polygons, int framePosition) {
-        System.out.println("Label image output not implemented");
+        log.warn("Label image output not implemented");
     }
     
 
     public static void main(final String... args) throws Exception {
-        
         final ImageJ ij = new ImageJ();
         ij.launch(args);
-        // ij.ui().showUI();
         
-        Dataset probDs = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_prob.tif").getFile());
-        Dataset distDs = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_dist.tif").getFile());
+        Dataset prob = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_prob.tif").getFile());
+        Dataset dist = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_dist.tif").getFile());
         
-        
-
-        ij.ui().show(probDs);
-        ij.ui().show(distDs);
+        ij.ui().show(prob);
+        ij.ui().show(dist);
 
         final HashMap<String, Object> params = new HashMap<>();
-        params.put("probDs", probDs);
-        params.put("distDs", distDs);
+        params.put("prob", prob);
+        params.put("dist", dist);
         ij.command().run(StarDistNMS2D.class, true, params);
 
         IJ.run("Tile");                
