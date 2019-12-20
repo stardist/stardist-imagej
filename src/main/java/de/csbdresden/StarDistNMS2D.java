@@ -22,17 +22,19 @@ import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import net.imagej.Dataset;
+import net.imagej.DatasetService;
 import net.imagej.ImageJ;
+import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
+import net.imagej.axis.AxisType;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
 @Plugin(type = Command.class, menuPath = "Plugins > StarDist > Postprocessing > 2D NMS", label = "StarDist 2D NMS")
-public class StarDistNMS2D<T extends RealType<T>> implements Command {
+public class StarDistNMS2D implements Command {
 
     @Parameter(label="Probability/Score Image")
     private Dataset prob;
@@ -41,7 +43,7 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     private Dataset dist;
 
     @Parameter(label="Label Image", type=ItemIO.OUTPUT)
-    private Img<?> label;
+    private Dataset label;
 
     @Parameter(label="Probability/Score Threshold", stepSize="0.05", min="0", max="1", style=NumberWidget.SLIDER_STYLE)
     private double probThresh = 0.5;
@@ -60,7 +62,7 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
     @Parameter(label="Boundary Exclusion", stepSize="1", min="0")
     private int excludeBoundary = 2;
 
-    @Parameter(label="Verbose", description="Verbose output")
+    @Parameter(label="Verbose")
     private boolean verbose = false;
 
     @Parameter
@@ -68,7 +70,10 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
 
     @Parameter
     private UIService ui;
-//
+    
+    @Parameter
+    private DatasetService dataset;    
+
 //    @Parameter
 //    private OpService opService;
 //
@@ -113,8 +118,14 @@ public class StarDistNMS2D<T extends RealType<T>> implements Command {
         }
 
         if (outputType.equals("Label Image") || outputType.equals("Both")) {
+            if (labelId-1 > 65535) {
+                log.error("Found too many segments, label image is not correct. Use ROI manager output instead.");
+            }
             // IJ.run(labelImage, "glasbey inverted", "");
-            label = ImageJFunctions.wrap(labelImage);
+            final Img labelImage_ = (Img) ImageJFunctions.wrap(labelImage);            
+            // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6
+            final AxisType[] axisTypes = isTimelapse ? new AxisType[]{ Axes.X, Axes.Y, Axes.TIME } : new AxisType[]{ Axes.X, Axes.Y };
+            label = dataset.create(new ImgPlus(dataset.create(labelImage_), "Label Image", axisTypes));            
         }
     }
     
