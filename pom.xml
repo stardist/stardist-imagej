@@ -11,7 +11,7 @@
 
 	<groupId>de.csbdresden</groupId>
 	<artifactId>StarDist</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.1-SNAPSHOT</version>
 
 	<name>StarDist</name>
 	<description>StarDist - Object Detection with Star-convex Shapes</description>
@@ -124,6 +124,6 @@
 			<groupId>de.csbdresden</groupId>
 			<artifactId>csbdeep</artifactId>
 			<version>0.3.5-SNAPSHOT</version>
-		</dependency>		
+		</dependency>
 	</dependencies>
 </project>
