@@ -6,11 +6,9 @@ import java.util.List;
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
-import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
-import org.scijava.ui.DialogPrompt.MessageType;
-import org.scijava.ui.UIService;
+import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 import org.scijava.widget.NumberWidget;
 
@@ -22,7 +20,6 @@ import ij.gui.Roi;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import net.imagej.Dataset;
-import net.imagej.DatasetService;
 import net.imagej.ImageJ;
 import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
@@ -33,53 +30,42 @@ import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
-@Plugin(type = Command.class, menuPath = "Plugins > StarDist > Postprocessing > 2D NMS", label = "StarDist 2D NMS")
-public class StarDistNMS2D implements Command {
-
-    @Parameter(label="Probability/Score Image")
+@Plugin(type = Command.class, menuPath = "Plugins > StarDist > Other > StarDist 2D NMS (postprocessing only)", label = "StarDist 2D NMS")
+public class StarDistNMS2D extends StarDistBase implements Command {
+    
+    @Parameter(label=Opt.PROB_IMAGE)
     private Dataset prob;
 
-    @Parameter(label="Distance Image")
+    @Parameter(label=Opt.DIST_IMAGE)
     private Dataset dist;
 
-    @Parameter(label="Label Image", type=ItemIO.OUTPUT)
+    @Parameter(label=Opt.LABEL_IMAGE, type=ItemIO.OUTPUT)
     private Dataset label;
 
-    @Parameter(label="Probability/Score Threshold", stepSize="0.05", min="0", max="1", style=NumberWidget.SLIDER_STYLE)
-    private double probThresh = 0.5;
+    @Parameter(label=Opt.PROB_THRESH, stepSize="0.05", min="0", max="1", style=NumberWidget.SLIDER_STYLE)
+    private double probThresh = (double) Opt.getDefault(Opt.PROB_THRESH);
 
-    @Parameter(label="Overlap Threshold", stepSize="0.05", min="0", max="1", style=NumberWidget.SLIDER_STYLE)
-    private double nmsThresh = 0.4;
+    @Parameter(label=Opt.NMS_THRESH, stepSize="0.05", min="0", max="1", style=NumberWidget.SLIDER_STYLE)
+    private double nmsThresh = (double) Opt.getDefault(Opt.NMS_THRESH);
 
-    @Parameter(label="Output Type",
-               choices={"ROI Manager","Label Image","Both"},
-               style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
-    private String outputType = "ROI Manager";
+    @Parameter(label=Opt.OUTPUT_TYPE, choices={Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
+    private String outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
+    
+    // ---------
 
     @Parameter(visibility=ItemVisibility.MESSAGE)
     private final String advMsg = "<html><u>Advanced</u></html>";
 
-    @Parameter(label="Boundary Exclusion", stepSize="1", min="0")
-    private int excludeBoundary = 2;
+    @Parameter(label=Opt.EXCLUDE_BNDRY, min="0", stepSize="1")
+    private int excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
 
-    @Parameter(label="Verbose")
-    private boolean verbose = false;
+    @Parameter(label=Opt.VERBOSE)
+    private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
 
-    @Parameter
-    private LogService log;
-
-    @Parameter
-    private UIService ui;
+    @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
+    private Button restoreDefaults;
     
-    @Parameter
-    private DatasetService dataset;    
-
-//    @Parameter
-//    private OpService opService;
-//
-//    @Parameter
-//    private CommandService commandService;
-
+    // ---------
 
     private boolean exportPointRois = false;
     private boolean exportBboxRois = false;
@@ -87,7 +73,18 @@ public class StarDistNMS2D implements Command {
     private RoiManager roiManager = null;
     private ImagePlus labelImage = null;
     private int labelId = 1;
+    
+    // ---------
+    
+    private void restoreDefaults() {
+        probThresh = (double) Opt.getDefault(Opt.PROB_THRESH);
+        nmsThresh = (double) Opt.getDefault(Opt.NMS_THRESH);
+        outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
+        excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+        verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
+    }
 
+    // ---------
 
     @Override
     public void run() {
@@ -117,25 +114,18 @@ public class StarDistNMS2D implements Command {
             export(polygons, 0);
         }
 
-        if (outputType.equals("Label Image") || outputType.equals("Both")) {
+        if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
             if (labelId-1 > 65535) {
-                log.error("Found too many segments, label image is not correct. Use ROI manager output instead.");
+                log.error(String.format("Found too many segments, label image is not correct. Use \"%s\" output instead.", Opt.OUTPUT_ROI_MANAGER));
             }
             // IJ.run(labelImage, "glasbey inverted", "");
             final Img labelImage_ = (Img) ImageJFunctions.wrap(labelImage);            
             // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6
             final AxisType[] axisTypes = isTimelapse ? new AxisType[]{ Axes.X, Axes.Y, Axes.TIME } : new AxisType[]{ Axes.X, Axes.Y };
-            label = dataset.create(new ImgPlus(dataset.create(labelImage_), "Label Image", axisTypes));            
+            label = dataset.create(new ImgPlus(dataset.create(labelImage_), Opt.LABEL_IMAGE, axisTypes));            
         }
     }
     
-    
-    private boolean showError(String msg) {
-        ui.showDialog(msg, MessageType.ERROR_MESSAGE);
-        // log.error(msg);
-        return false;
-    }
-
 
     private boolean checkInputs() {
         if (!( (prob.numDimensions() == 2 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y) ||
@@ -161,8 +151,8 @@ public class StarDistNMS2D implements Command {
         if (excludeBoundary < 0)
             return showError("Boundary Exclusion must be >= 0");
 
-        if (!(outputType.equals("ROI Manager") || outputType.equals("Label Image") || outputType.equals("Both")))
-            return showError("Output Type must be one of {\"ROI Manager\", \"Label Image\", \"Both\"}.");
+        if (!(outputType.equals(Opt.OUTPUT_ROI_MANAGER) || outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)))
+            return showError(String.format("Output Type must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH));
 
         if (verbose) {
             log.info(String.format("probThresh = %f\n", probThresh));
@@ -178,13 +168,13 @@ public class StarDistNMS2D implements Command {
 
     private void export(Candidates polygons, int framePosition) {
         switch (outputType) {
-        case "ROI Manager":
+        case Opt.OUTPUT_ROI_MANAGER:
             exportROIs(polygons, framePosition);
             break;
-        case "Label Image":
+        case Opt.OUTPUT_LABEL_IMAGE:
             exportLabelImage(polygons, framePosition);
             break;
-        case "Both":
+        case Opt.OUTPUT_BOTH:
             exportROIs(polygons, framePosition);
             exportLabelImage(polygons, framePosition);
             break;

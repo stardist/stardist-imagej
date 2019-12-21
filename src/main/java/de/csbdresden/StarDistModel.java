@@ -5,10 +5,22 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.scijava.util.FileUtils;
 
 public class StarDistModel {
+    
+    static final String MODEL_DSB2018_V1 = "DSB 2018 v1 (nuclei, fluorescence microscopy)";
+    static final String MODEL_DEFAULT = MODEL_DSB2018_V1;    
+    
+    static final Map<String, StarDistModel> MODELS = new LinkedHashMap<String, StarDistModel>();
+    static {
+        MODELS.put(MODEL_DSB2018_V1, new StarDistModel(StarDistModel.class.getClassLoader().getResource("models/2D/dsb2018_v1.zip"), 0.417819, 0.5));        
+    }
+    
+    // -----------
     
     public final URL url;
     public final double probThresh;
