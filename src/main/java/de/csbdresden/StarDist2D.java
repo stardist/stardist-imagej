@@ -5,9 +5,13 @@ import static de.csbdresden.StarDistModel.MODEL_DSB2018_V1;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.IntStream;
 
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
@@ -27,7 +31,6 @@ import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.FloatType;
-import net.imglib2.util.Intervals;
 import net.imglib2.view.Views;
 
 @Plugin(type = Command.class, menuPath = "Plugins > StarDist > StarDist 2D")
@@ -134,9 +137,7 @@ public class StarDist2D extends StarDistBase implements Command {
     @Override
     public void run() {
         if (!checkInputs()) return;
-
-        // TODO: timelapse support
-
+        
         File tmpModelFile = null;
         try {
             final HashMap<String, Object> paramsCNN = new HashMap<>();
@@ -159,9 +160,9 @@ public class StarDist2D extends StarDistBase implements Command {
                 paramsCNN.put("modelUrl", modelUrl);
                 break;
             default:
-                StarDistModel pretrainedModel = MODELS.get(modelChoice);
+                final StarDistModel pretrainedModel = MODELS.get(modelChoice);
                 if (pretrainedModel.canGetFile()) {
-                    File file = pretrainedModel.getFile();
+                    final File file = pretrainedModel.getFile();
                     paramsCNN.put("modelFile", file);
                     if (pretrainedModel.isTempFile())
                         tmpModelFile = file;
@@ -169,34 +170,59 @@ public class StarDist2D extends StarDistBase implements Command {
                     paramsCNN.put("modelUrl", pretrainedModel.url);
                 }
             }
+            
+            final LinkedHashSet<AxisType> inputAxes = Utils.orderedAxesSet(input);
+            final boolean isTimelapse = inputAxes.contains(Axes.TIME);
+            
+            if (false && isTimelapse) {
+                // TODO: interleaved timelapse support
+                // final long numFrames = input.getFrames();
 
-            final Future<CommandModule> futureCNN = command.run(GenericNetwork.class, false, paramsCNN);
-            final RandomAccessibleInterval<FloatType> prediction = (RandomAccessibleInterval<FloatType>) futureCNN.get().getOutput("output");
+            } else {
+                final Future<CommandModule> futureCNN = command.run(GenericNetwork.class, false, paramsCNN);
+                final Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
+                final RandomAccessibleInterval<FloatType> predictionRAI = (RandomAccessibleInterval<FloatType>) prediction.getImgPlus();
+                final LinkedHashSet<AxisType> predAxes = Utils.orderedAxesSet(prediction);
 
-            final long[] shape = Intervals.dimensionsAsLongArray(prediction);
-            final RandomAccessibleInterval<FloatType> probRAI = Views.hyperSlice(prediction, 2, 0);
-            final RandomAccessibleInterval<FloatType> distRAI = Views.offsetInterval(prediction, new long[]{0,0,1}, new long[]{shape[0],shape[1],shape[2]-1});
+                final int predChannelDim = IntStream.range(0, predAxes.size()).filter(d -> prediction.axis(d).type() == Axes.CHANNEL).findFirst().getAsInt();
+                final long[] predStart = predAxes.stream().mapToLong(axis -> {
+                    return axis == Axes.CHANNEL ? 1 : 0;
+                }).toArray();
+                final long[] predSize = predAxes.stream().mapToLong(axis -> {
+                    return axis == Axes.CHANNEL ? prediction.dimension(axis)-1 : prediction.dimension(axis);
+                }).toArray();
+                
+                final RandomAccessibleInterval<FloatType> probRAI = Views.hyperSlice(predictionRAI, predChannelDim, 0);
+                final RandomAccessibleInterval<FloatType> distRAI = Views.offsetInterval(predictionRAI, predStart, predSize);
 
-            // is there a better way?
-            // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6
-            final Dataset prob = dataset.create(new ImgPlus(dataset.create(probRAI), "prob", new AxisType[] { Axes.X, Axes.Y }));
-            final Dataset dist = dataset.create(new ImgPlus(dataset.create(distRAI), "dist", new AxisType[] { Axes.X, Axes.Y, Axes.CHANNEL }));
+                AxisType[] probAxes = predAxes.stream().filter(axis -> axis != Axes.CHANNEL).toArray(AxisType[]::new);
+                AxisType[] distAxes = predAxes.stream().toArray(AxisType[]::new);
+                
+                // System.out.println("probAxes: " + Arrays.toString(probAxes));
+                // System.out.println("distAxes: " + Arrays.toString(distAxes));
+                // System.out.println(Arrays.toString(predStart));
+                // System.out.println(Arrays.toString(predSize));
 
-            // ui.show(prob);
-            // ui.show(dist);
+                // is there a better way?
+                // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6
+                final Dataset prob = dataset.create(new ImgPlus(dataset.create(probRAI), "prob", probAxes));
+                final Dataset dist = dataset.create(new ImgPlus(dataset.create(distRAI), "dist", distAxes));
+                
+                // ui.show(prob);
+                // ui.show(dist);
 
-            final HashMap<String, Object> paramsNMS = new HashMap<>();
-            paramsNMS.put("prob", prob);
-            paramsNMS.put("dist", dist);
-            paramsNMS.put("probThresh", probThresh);
-            paramsNMS.put("nmsThresh", nmsThresh);
-            paramsNMS.put("outputType", outputType);
-            paramsNMS.put("excludeBoundary", excludeBoundary);
-            paramsNMS.put("verbose", verbose);
+                final HashMap<String, Object> paramsNMS = new HashMap<>();
+                paramsNMS.put("prob", prob);
+                paramsNMS.put("dist", dist);
+                paramsNMS.put("probThresh", probThresh);
+                paramsNMS.put("nmsThresh", nmsThresh);
+                paramsNMS.put("outputType", outputType);
+                paramsNMS.put("excludeBoundary", excludeBoundary);
+                paramsNMS.put("verbose", verbose);
 
-            final Future<CommandModule> futureNMS = command.run(StarDistNMS2D.class, false, paramsNMS);
-            label = (Dataset) futureNMS.get().getOutput("label");
-
+                final Future<CommandModule> futureNMS = command.run(StarDistNMS2D.class, false, paramsNMS);
+                label = (Dataset) futureNMS.get().getOutput("label");                
+            }
         } catch (InterruptedException | ExecutionException | IOException e) {
             e.printStackTrace();
         } finally {
@@ -211,10 +237,11 @@ public class StarDist2D extends StarDistBase implements Command {
 
 
     private boolean checkInputs() {
-        if (!( (input.numDimensions() == 2 && input.axis(0).type() == Axes.X && input.axis(1).type() == Axes.Y) ||
-               (input.numDimensions() == 3 && input.axis(0).type() == Axes.X && input.axis(1).type() == Axes.Y && input.axis(2).type() == Axes.TIME) ||
-               (input.numDimensions() == 3 && input.axis(0).type() == Axes.X && input.axis(1).type() == Axes.Y && input.axis(2).type() == Axes.CHANNEL) ||
-               (input.numDimensions() == 4 && input.axis(0).type() == Axes.X && input.axis(1).type() == Axes.Y && input.axis(2).type() == Axes.CHANNEL && input.axis(3).type() == Axes.TIME) ))
+        Set<AxisType> axes = Utils.orderedAxesSet(input);
+        if (!( (input.numDimensions() == 2 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y))) ||
+               (input.numDimensions() == 3 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.TIME))) ||
+               (input.numDimensions() == 3 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL))) ||
+               (input.numDimensions() == 4 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL, Axes.TIME))) ))
             return showError("Input must be a 2D image or timelapse (with or without channels).");
         
         if (!( modelChoice.equals(Opt.MODEL_FILE) || modelChoice.equals(Opt.MODEL_URL) || MODELS.containsKey(modelChoice) )) 
@@ -229,6 +256,7 @@ public class StarDist2D extends StarDistBase implements Command {
         ij.launch(args);
 
         Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast.tif").getFile());
+        // Dataset input = ij.scifio().datasetIO().open("http://wsr.imagej.net/images/blobs.gif");
         ij.ui().show(input);
 
         final HashMap<String, Object> params = new HashMap<>();

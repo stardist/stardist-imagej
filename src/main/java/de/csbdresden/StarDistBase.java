@@ -26,7 +26,7 @@ public class StarDistBase {
     
     
     protected URL getLogoUrl() {
-        return StarDist2D.class.getClassLoader().getResource("images/logo.png");
+        return StarDistBase.class.getClassLoader().getResource("images/logo.png");
     }    
     
     protected boolean showError(String msg) {

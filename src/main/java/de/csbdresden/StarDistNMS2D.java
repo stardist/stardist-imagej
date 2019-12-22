@@ -1,7 +1,10 @@
 package de.csbdresden;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
@@ -90,17 +93,20 @@ public class StarDistNMS2D extends StarDistBase implements Command {
     public void run() {
         if (!checkInputs()) return;
 
-        @SuppressWarnings("unchecked")
         final RandomAccessibleInterval<FloatType> probRAI = (RandomAccessibleInterval<FloatType>) prob.getImgPlus();
-        @SuppressWarnings("unchecked")
         final RandomAccessibleInterval<FloatType> distRAI = (RandomAccessibleInterval<FloatType>) dist.getImgPlus();
-
-        final long numFrames = prob.getFrames();
-        final boolean isTimelapse = numFrames > 1;
+        
+        final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
+        final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
+        final boolean isTimelapse = probAxes.contains(Axes.TIME);
 
         if (isTimelapse) {
+            final int probTimeDim = IntStream.range(0, probAxes.size()).filter(d -> prob.axis(d).type() == Axes.TIME).findFirst().getAsInt();
+            final int distTimeDim = IntStream.range(0, distAxes.size()).filter(d -> dist.axis(d).type() == Axes.TIME).findFirst().getAsInt();
+            final long numFrames = prob.getFrames();
+
             for (int t = 0; t < numFrames; t++) {
-                final Candidates polygons = new Candidates(Views.hyperSlice(probRAI,2,t), Views.hyperSlice(distRAI,3,t), probThresh, excludeBoundary, verbose ? log : null);
+                final Candidates polygons = new Candidates(Views.hyperSlice(probRAI, probTimeDim, t), Views.hyperSlice(distRAI, distTimeDim, t), probThresh, excludeBoundary, verbose ? log : null);
                 polygons.nms(nmsThresh);
                 if (verbose)
                     log.info(String.format("frame %03d: %d polygon candidates, %d remain after non-maximum suppression\n", t, polygons.getSorted().size(), polygons.getWinner().size()));
@@ -128,12 +134,15 @@ public class StarDistNMS2D extends StarDistBase implements Command {
     
 
     private boolean checkInputs() {
-        if (!( (prob.numDimensions() == 2 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y) ||
-               (prob.numDimensions() == 3 && prob.axis(0).type() == Axes.X && prob.axis(1).type() == Axes.Y && prob.axis(2).type() == Axes.TIME) ))
+        final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
+        final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
+        
+        if (!( (prob.numDimensions() == 2 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y))) ||
+               (prob.numDimensions() == 3 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.TIME))) ))
             return showError("Probability/Score must be a 2D image or timelapse.");
 
-        if (!( (dist.numDimensions() == 3 && dist.axis(0).type() == Axes.X && dist.axis(1).type() == Axes.Y && dist.axis(2).type() == Axes.CHANNEL && dist.getChannels() >= 3) ||
-               (dist.numDimensions() == 4 && dist.axis(0).type() == Axes.X && dist.axis(1).type() == Axes.Y && dist.axis(2).type() == Axes.CHANNEL && dist.getChannels() >= 3 && dist.axis(3).type() == Axes.TIME) ))
+        if (!( (dist.numDimensions() == 3 && distAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL))            && dist.getChannels() >= 3) ||
+               (dist.numDimensions() == 4 && distAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL, Axes.TIME)) && dist.getChannels() >= 3) ))
             return showError("Distance must be a 2D image or timelapse with at least three channels.");
 
         if ((prob.numDimensions() + 1) != dist.numDimensions())
@@ -144,6 +153,13 @@ public class StarDistNMS2D extends StarDistBase implements Command {
 
         if (prob.getFrames() != dist.getFrames())
             return showError("Number of frames of Probability/Score and Distance differ.");
+        
+        AxisType[] probAxesArray = probAxes.toArray(new AxisType[0]);
+        AxisType[] distAxesArray = distAxes.toArray(new AxisType[0]);
+        if (!( probAxesArray[0] == Axes.X && probAxesArray[1] == Axes.Y ))
+            return showError("First two axes of Probability/Score must be a X and Y.");
+        if (!( distAxesArray[0] == Axes.X && distAxesArray[1] == Axes.Y ))
+            return showError("First two axes of Distance must be a X and Y.");        
 
         if (!(0 <= nmsThresh && nmsThresh < 1))
             return showError("NMS Threshold must be in interval [0,1).");

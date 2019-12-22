@@ -2,12 +2,15 @@ package de.csbdresden;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import de.lighti.clipper.Path;
 import de.lighti.clipper.Point.LongPoint;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import net.imagej.Dataset;
+import net.imagej.axis.AxisType;
 
 public class Utils {
 
@@ -40,6 +43,14 @@ public class Utils {
             }
         });
         return Arrays.asList(indices);
-    }    
+    }
+
+    public static LinkedHashSet<AxisType> orderedAxesSet(Dataset image) {
+        final int numDims = image.numDimensions();
+        final LinkedHashSet<AxisType> axes = new LinkedHashSet<>(numDims);
+        for (int d = 0; d < numDims; d++)
+            axes.add(image.axis(d).type());
+        return axes;
+    }
 
 }
