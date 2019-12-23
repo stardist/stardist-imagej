@@ -75,7 +75,9 @@ public class StarDistNMS2D extends StarDistBase implements Command {
 
     private RoiManager roiManager = null;
     private ImagePlus labelImage = null;
-    private int labelId = 1;
+    private int labelId = 0;
+    private long labelCount = 0;
+    private static final int MAX_LABEL_ID = 65535;
     
     // ---------
     
@@ -121,8 +123,8 @@ public class StarDistNMS2D extends StarDistBase implements Command {
         }
 
         if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
-            if (labelId-1 > 65535) {
-                log.error(String.format("Found too many segments, label image is not correct. Use \"%s\" output instead.", Opt.OUTPUT_ROI_MANAGER));
+            if (labelCount > MAX_LABEL_ID) {
+                log.error(String.format("Found more than %d segments -> label image does contain some repetitive IDs.\n(\"%s\" output instead does not have this problem).", MAX_LABEL_ID, Opt.OUTPUT_ROI_MANAGER));
             }
             // IJ.run(labelImage, "glasbey inverted", "");
             final Img labelImage_ = (Img) ImageJFunctions.wrap(labelImage);            
@@ -169,14 +171,6 @@ public class StarDistNMS2D extends StarDistBase implements Command {
 
         if (!(outputType.equals(Opt.OUTPUT_ROI_MANAGER) || outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)))
             return showError(String.format("Output Type must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH));
-
-        if (verbose) {
-            log.info(String.format("probThresh = %f\n", probThresh));
-            log.info(String.format("nmsThresh = %f\n", nmsThresh));
-            log.info(String.format("excludeBoundary = %d\n", excludeBoundary));
-            log.info(String.format("verbose = %s\n", verbose));
-            log.info(String.format("outputType = %s\n", outputType));
-        }
         
         return true;
     }
@@ -240,10 +234,11 @@ public class StarDistNMS2D extends StarDistBase implements Command {
         // winners are ordered by score -> draw from last to first to give priority to higher scores in case of overlaps
         for (int i = numWinners-1; i >= 0; i--) {
             final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(winner.get(i)));
-            ip.setColor(labelId+i);
+            ip.setColor(1 + ((labelId + i) % MAX_LABEL_ID));
             ip.fill(polyRoi);
         }
-        labelId += numWinners;
+        labelCount += numWinners;
+        labelId = (labelId + numWinners) % MAX_LABEL_ID;
     }
 
 
