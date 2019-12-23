@@ -85,7 +85,7 @@ public class Candidates {
         suppressed = new boolean[polygons.size()];
         
         if (verbose)
-            log.info(String.format("Candidates constructor took %d ms\n", System.currentTimeMillis() - start));
+            log.info(String.format("Candidates constructor took %d ms", System.currentTimeMillis() - start));
     }
     
     public void nms_v0(final double threshold) {
@@ -111,7 +111,7 @@ public class Candidates {
             }
         }
         if (verbose)
-            log.info(String.format("Candidates NMS took %d ms\n", System.currentTimeMillis() - start));
+            log.info(String.format("Candidates NMS took %d ms", System.currentTimeMillis() - start));
     }
 
     public void nms(final double threshold) {
@@ -141,7 +141,7 @@ public class Candidates {
             });
         }
         if (verbose)
-            log.info(String.format("Candidates NMS took %d ms\n", System.currentTimeMillis() - start));
+            log.info(String.format("Candidates NMS took %d ms", System.currentTimeMillis() - start));
     }
 
     private double poly_intersection_area(final Path a, final Path b) {

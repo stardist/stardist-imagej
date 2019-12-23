@@ -6,6 +6,8 @@ import java.util.Map;
 public class Opt {
     
     static final String INPUT_IMAGE = "Input Image";
+    static final String PROB_IMAGE = "Probability/Score Image";
+    static final String DIST_IMAGE = "Distance Image";
     static final String LABEL_IMAGE = "Label Image";
     static final String NORMALIZE_IMAGE = "Normalize Image";
     static final String MODEL = "Model";
@@ -19,16 +21,13 @@ public class Opt {
     static final String OUTPUT_ROI_MANAGER = "ROI Manager";
     static final String OUTPUT_LABEL_IMAGE = "Label Image";
     static final String OUTPUT_BOTH = "Both";    
+    static final String OUTPUT_POLYGONS = "Polygons";
     static final String NUM_TILES = "Number of Tiles";
     static final String EXCLUDE_BNDRY = "Boundary Exclusion";
     static final String VERBOSE = "Verbose";
     static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
     static final String SHOW_PROB_DIST = "Show CNN Output";
-    static final String RESTORE_DEFAULTS = "Restore Defaults";
-    
-    static final String PROB_IMAGE = "Probability/Score Image";
-    static final String DIST_IMAGE = "Distance Image";
-    
+    static final String RESTORE_DEFAULTS = "Restore Defaults";    
     
     private static final Map<String, Object> DEFAULTS = new LinkedHashMap<String, Object>();
     static {

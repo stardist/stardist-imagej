@@ -1,16 +1,21 @@
 package de.csbdresden;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.Stream;
 
 import de.lighti.clipper.Path;
 import de.lighti.clipper.Point.LongPoint;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
 import net.imagej.Dataset;
+import net.imagej.DatasetService;
+import net.imagej.ImgPlus;
 import net.imagej.axis.AxisType;
+import net.imglib2.RandomAccessibleInterval;
 
 public class Utils {
 
@@ -51,6 +56,20 @@ public class Utils {
         for (int d = 0; d < numDims; d++)
             axes.add(image.axis(d).type());
         return axes;
+    }
+    
+    public static Dataset raiToDataset(final DatasetService dataset, final String name, final RandomAccessibleInterval rai, final AxisType... axes) {
+        // is there a better way?
+        // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6        
+        return dataset.create(new ImgPlus(dataset.create(rai), name, axes));
+    }
+    
+    public static Dataset raiToDataset(final DatasetService dataset, final String name, final RandomAccessibleInterval rai, final Stream<AxisType> axesStream) {
+        return raiToDataset(dataset, name, rai, axesStream.toArray(AxisType[]::new));
+    }
+
+    public static Dataset raiToDataset(final DatasetService dataset, final String name, final RandomAccessibleInterval rai, final Collection<AxisType> axesCollection) {
+        return raiToDataset(dataset, name, rai, axesCollection.stream());
     }
 
 }
