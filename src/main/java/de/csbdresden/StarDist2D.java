@@ -68,6 +68,12 @@ public class StarDist2D extends StarDistBase implements Command {
 
     @Parameter(label=Opt.PERCENTILE_HIGH, stepSize="0.1", min="0", max="100", style=NumberWidget.SLIDER_STYLE, callback="percentileTopChanged")
     private double percentileTop = (double) Opt.getDefault(Opt.PERCENTILE_HIGH);
+    
+    @Parameter(label=Opt.PROB_IMAGE, type=ItemIO.OUTPUT)
+    private Dataset probOut;
+
+    @Parameter(label=Opt.DIST_IMAGE, type=ItemIO.OUTPUT)
+    private Dataset distOut;
 
     // ---------
 
@@ -105,6 +111,12 @@ public class StarDist2D extends StarDistBase implements Command {
 
     @Parameter(label=Opt.VERBOSE)
     private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
+    
+    @Parameter(label=Opt.CSBDEEP_PROGRESS_WINDOW)
+    private boolean showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
+    
+    @Parameter(label=Opt.SHOW_PROB_DIST)
+    private boolean showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
 
     @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
     private Button restoreDefaults;
@@ -122,6 +134,8 @@ public class StarDist2D extends StarDistBase implements Command {
         nTiles = (int) Opt.getDefault(Opt.NUM_TILES);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
+        showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
+        showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
     }
 
     private void percentileBottomChanged() {
@@ -150,7 +164,7 @@ public class StarDist2D extends StarDistBase implements Command {
             paramsCNN.put("blockMultiple", 64);
             paramsCNN.put("overlap", 64);
             paramsCNN.put("batchSize", 1);
-            paramsCNN.put("showProgressDialog", true);
+            paramsCNN.put("showProgressDialog", showCsbdeepProgress);
 
             switch (modelChoice) {
             case Opt.MODEL_FILE:
@@ -195,8 +209,8 @@ public class StarDist2D extends StarDistBase implements Command {
                 final RandomAccessibleInterval<FloatType> probRAI = Views.hyperSlice(predictionRAI, predChannelDim, 0);
                 final RandomAccessibleInterval<FloatType> distRAI = Views.offsetInterval(predictionRAI, predStart, predSize);
 
-                AxisType[] probAxes = predAxes.stream().filter(axis -> axis != Axes.CHANNEL).toArray(AxisType[]::new);
-                AxisType[] distAxes = predAxes.stream().toArray(AxisType[]::new);
+                final AxisType[] probAxes = predAxes.stream().filter(axis -> axis != Axes.CHANNEL).toArray(AxisType[]::new);
+                final AxisType[] distAxes = predAxes.stream().toArray(AxisType[]::new);
                 
                 // System.out.println("probAxes: " + Arrays.toString(probAxes));
                 // System.out.println("distAxes: " + Arrays.toString(distAxes));
@@ -205,12 +219,14 @@ public class StarDist2D extends StarDistBase implements Command {
 
                 // is there a better way?
                 // https://forum.image.sc/t/convert-randomaccessibleinterval-to-imgplus-or-dataset/8535/6
-                final Dataset prob = dataset.create(new ImgPlus(dataset.create(probRAI), "prob", probAxes));
-                final Dataset dist = dataset.create(new ImgPlus(dataset.create(distRAI), "dist", distAxes));
+                final Dataset prob = dataset.create(new ImgPlus(dataset.create(probRAI), Opt.PROB_IMAGE, probAxes));
+                final Dataset dist = dataset.create(new ImgPlus(dataset.create(distRAI), Opt.DIST_IMAGE, distAxes));
                 
-                // ui.show(prob);
-                // ui.show(dist);
-
+                if (showProbAndDist) {
+                    probOut = prob;
+                    distOut = dist;
+                }
+                
                 final HashMap<String, Object> paramsNMS = new HashMap<>();
                 paramsNMS.put("prob", prob);
                 paramsNMS.put("dist", dist);
@@ -237,7 +253,7 @@ public class StarDist2D extends StarDistBase implements Command {
 
 
     private boolean checkInputs() {
-        Set<AxisType> axes = Utils.orderedAxesSet(input);
+        final Set<AxisType> axes = Utils.orderedAxesSet(input);
         if (!( (input.numDimensions() == 2 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y))) ||
                (input.numDimensions() == 3 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.TIME))) ||
                (input.numDimensions() == 3 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL))) ||

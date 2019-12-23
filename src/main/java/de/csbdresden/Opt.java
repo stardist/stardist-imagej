@@ -22,6 +22,8 @@ public class Opt {
     static final String NUM_TILES = "Number of Tiles";
     static final String EXCLUDE_BNDRY = "Boundary Exclusion";
     static final String VERBOSE = "Verbose";
+    static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
+    static final String SHOW_PROB_DIST = "Show CNN Output";
     static final String RESTORE_DEFAULTS = "Restore Defaults";
     
     static final String PROB_IMAGE = "Probability/Score Image";
@@ -40,6 +42,8 @@ public class Opt {
         DEFAULTS.put(NUM_TILES, 1);
         DEFAULTS.put(EXCLUDE_BNDRY, 2);
         DEFAULTS.put(VERBOSE, false);
+        DEFAULTS.put(CSBDEEP_PROGRESS_WINDOW, true);
+        DEFAULTS.put(SHOW_PROB_DIST, false);
     }
     
     static Object getDefault(final String key) {
