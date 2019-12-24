@@ -50,9 +50,9 @@ public abstract class StarDist2DBase {
     
     // ---------
     
-    protected URL getLogoUrl() {
-        return StarDist2DBase.class.getClassLoader().getResource("images/logo.png");
-    }    
+    protected URL getResource(final String name) {
+        return StarDist2DBase.class.getClassLoader().getResource(name);
+    }        
     
     protected boolean showError(String msg) {
         ui.showDialog(msg, MessageType.ERROR_MESSAGE);

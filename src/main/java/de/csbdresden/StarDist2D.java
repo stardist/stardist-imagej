@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
+import javax.swing.JOptionPane;
+
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
@@ -23,7 +25,6 @@ import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 import org.scijava.widget.NumberWidget;
 
-import de.csbdresden.csbdeep.commands.GenericNetwork;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
@@ -39,13 +40,13 @@ import net.imglib2.view.Views;
 @Plugin(type = Command.class, menuPath = "Plugins > StarDist > StarDist 2D")
 public class StarDist2D extends StarDist2DBase implements Command {
 
-    @Parameter(label="", visibility=ItemVisibility.MESSAGE)
+    @Parameter(label="", visibility=ItemVisibility.MESSAGE, initializer="checkForCSBDeep")
     private final String msgTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Object Detection with Star-convex Shapes</h2>" +
             "<a href='https://github.com/mpicbg-csbd/stardist'>https://github.com/mpicbg-csbd/stardist</a>" +
             "<br/><br/><small>Please cite our paper if StarDist was helpful for your research. Thanks!</small>" +
-            "</td><td>&nbsp;&nbsp;<img src='"+getLogoUrl()+"' width='100' height='100'></img><td>" +
+            "</td><td>&nbsp;&nbsp;<img src='"+getResource("images/logo.png")+"' width='100' height='100'></img><td>" +
             "</tr></table>" +
             "</html>";
 
@@ -151,10 +152,29 @@ public class StarDist2D extends StarDist2DBase implements Command {
         percentileBottom = Math.min(percentileBottom, percentileTop);
     }
 
+    private void checkForCSBDeep() {
+        try {
+            Class.forName("de.csbdresden.csbdeep.commands.GenericNetwork");
+        } catch (ClassNotFoundException e) {
+            JOptionPane.showMessageDialog(null,
+                    "<html><p>"
+                    + "StarDist relies on the CSBDeep plugin for neural network prediction.<br><br>"
+                    + "Please install CSBDeep by enabling its update site.<br>"
+                    + "Go to <code>Help > Update...</code>, then click on <code>Manage update sites</code>.<br>"
+                    + "Please see <a href='https://github.com/csbdeep/csbdeep_website/wiki/CSBDeep-in-Fiji-%E2%80%93-Installation'>https://tinyurl.com/csbdeep-install</a> for more details."
+                    + "</p><img src='"+getResource("images/csbdeep_updatesite.png")+"' width='498' height='324'>"
+                    ,
+                    "Required CSBDeep plugin missing",
+                    JOptionPane.ERROR_MESSAGE);
+            throw new RuntimeException("CSBDeep not installed");
+        }
+    }
+
     // ---------
 
     @Override
     public void run() {
+        checkForCSBDeep();
         if (!checkInputs()) return;
         
         File tmpModelFile = null;
@@ -210,7 +230,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                             Views.hyperSlice(input.getImgPlus(), inputTimeDim, t),
                             inputAxes.stream().filter(axis -> axis != Axes.TIME));
                     paramsCNN.put("input", inputFrameDS);
-                    final Future<CommandModule> futureCNN = command.run(GenericNetwork.class, false, paramsCNN);
+                    final Future<CommandModule> futureCNN = command.run(de.csbdresden.csbdeep.commands.GenericNetwork.class, false, paramsCNN);
                     final Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
 
                     final Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction);
@@ -235,7 +255,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 //       - joint normalization of all frames
                 //       - requires more memory to store intermediate results (prob and dist) of all frames
                 //       - allows showing prob and dist easily
-                final Future<CommandModule> futureCNN = command.run(GenericNetwork.class, false, paramsCNN);
+                final Future<CommandModule> futureCNN = command.run(de.csbdresden.csbdeep.commands.GenericNetwork.class, false, paramsCNN);
                 final Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
                 
                 final Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction);
