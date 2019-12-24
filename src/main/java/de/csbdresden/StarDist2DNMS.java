@@ -25,7 +25,7 @@ import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
 @Plugin(type = Command.class, menuPath = "Plugins > StarDist > Other > StarDist 2D NMS (postprocessing only)", label = "StarDist 2D NMS")
-public class StarDistNMS2D extends StarDist2DBase implements Command {
+public class StarDist2DNMS extends StarDist2DBase implements Command {
     
     @Parameter(label=Opt.PROB_IMAGE)
     private Dataset prob;
@@ -168,8 +168,8 @@ public class StarDistNMS2D extends StarDist2DBase implements Command {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
 
-        Dataset prob = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_prob.tif").getFile());
-        Dataset dist = ij.scifio().datasetIO().open(StarDistNMS2D.class.getClassLoader().getResource("blobs_dist.tif").getFile());
+        Dataset prob = ij.scifio().datasetIO().open(StarDist2DNMS.class.getClassLoader().getResource("blobs_prob.tif").getFile());
+        Dataset dist = ij.scifio().datasetIO().open(StarDist2DNMS.class.getClassLoader().getResource("blobs_dist.tif").getFile());
 
         ij.ui().show(prob);
         ij.ui().show(dist);
@@ -177,7 +177,7 @@ public class StarDistNMS2D extends StarDist2DBase implements Command {
         final HashMap<String, Object> params = new HashMap<>();
         params.put("prob", prob);
         params.put("dist", dist);
-        ij.command().run(StarDistNMS2D.class, true, params);
+        ij.command().run(StarDist2DNMS.class, true, params);
 
         IJ.run("Tile");
     }

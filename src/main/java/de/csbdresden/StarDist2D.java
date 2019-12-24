@@ -1,7 +1,7 @@
 package de.csbdresden;
 
-import static de.csbdresden.StarDistModel.MODELS;
-import static de.csbdresden.StarDistModel.MODEL_DSB2018_V1;
+import static de.csbdresden.StarDist2DModel.MODELS;
+import static de.csbdresden.StarDist2DModel.MODEL_DSB2018_V1;
 
 import java.io.File;
 import java.io.IOException;
@@ -179,7 +179,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 paramsCNN.put("modelUrl", modelUrl);
                 break;
             default:
-                final StarDistModel pretrainedModel = MODELS.get(modelChoice);
+                final StarDist2DModel pretrainedModel = MODELS.get(modelChoice);
                 if (pretrainedModel.canGetFile()) {
                     final File file = pretrainedModel.getFile();
                     paramsCNN.put("modelFile", file);
@@ -224,7 +224,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                         if (t==0) log.error(String.format("\"%s\" not implemented/supported for timelapse data.", Opt.SHOW_PROB_DIST));
                     }
 
-                    final Future<CommandModule> futureNMS = command.run(StarDistNMS2D.class, false, paramsNMS);
+                    final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                     final Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
                     export(outputType, polygons, 1+t);
                 }
@@ -249,7 +249,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                     dist = distDS;
                 }
 
-                final Future<CommandModule> futureNMS = command.run(StarDistNMS2D.class, false, paramsNMS);
+                final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                 label = (Dataset) futureNMS.get().getOutput("label");                
             }
         } catch (InterruptedException | ExecutionException | IOException e) {

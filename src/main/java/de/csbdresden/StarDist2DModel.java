@@ -10,14 +10,14 @@ import java.util.Map;
 
 import org.scijava.util.FileUtils;
 
-public class StarDistModel {
+public class StarDist2DModel {
     
     static final String MODEL_DSB2018_V1 = "DSB 2018 v1 (nuclei, fluorescence microscopy)";
     static final String MODEL_DEFAULT = MODEL_DSB2018_V1;    
     
-    static final Map<String, StarDistModel> MODELS = new LinkedHashMap<String, StarDistModel>();
+    static final Map<String, StarDist2DModel> MODELS = new LinkedHashMap<String, StarDist2DModel>();
     static {
-        MODELS.put(MODEL_DSB2018_V1, new StarDistModel(StarDistModel.class.getClassLoader().getResource("models/2D/dsb2018_v1.zip"), 0.417819, 0.5));        
+        MODELS.put(MODEL_DSB2018_V1, new StarDist2DModel(StarDist2DModel.class.getClassLoader().getResource("models/2D/dsb2018_v1.zip"), 0.417819, 0.5));        
     }
     
     // -----------
@@ -27,7 +27,7 @@ public class StarDistModel {
     public final double nmsThresh;
     private final String protocol;
     
-    public StarDistModel(URL url, double probThresh, double nmsThresh) {
+    public StarDist2DModel(URL url, double probThresh, double nmsThresh) {
         this.url = url;
         this.protocol = url.getProtocol().toLowerCase();
         this.probThresh = probThresh;

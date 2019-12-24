@@ -31,7 +31,7 @@ public class Opt {
     
     private static final Map<String, Object> DEFAULTS = new LinkedHashMap<String, Object>();
     static {
-        DEFAULTS.put(MODEL, StarDistModel.MODEL_DEFAULT);
+        DEFAULTS.put(MODEL, StarDist2DModel.MODEL_DEFAULT);
         DEFAULTS.put(NORMALIZE_IMAGE, true);
         DEFAULTS.put(PERCENTILE_LOW, 1.0);
         DEFAULTS.put(PERCENTILE_HIGH, 99.8);
