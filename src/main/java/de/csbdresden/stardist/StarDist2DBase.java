@@ -1,4 +1,4 @@
-package de.csbdresden;
+package de.csbdresden.stardist;
 
 import java.net.URL;
 import java.util.List;

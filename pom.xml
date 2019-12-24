@@ -43,13 +43,22 @@
 				<role>maintainer</role>
 			</roles>
 		</developer>
-	</developers>
-	<contributors>
-		<contributor>
+		<developer>
+			<id>maweigert</id>
 			<name>Martin Weigert</name>
 			<url>https://github.com/maweigert</url>
-			<roles><role>founder</role></roles>
-		</contributor>
+			<roles>
+				<role>founder</role>
+				<role>lead</role>
+				<role>developer</role>
+				<role>debugger</role>
+				<role>reviewer</role>
+				<role>support</role>
+				<role>maintainer</role>
+			</roles>
+		</developer>
+	</developers>
+	<contributors>
 		<contributor>
 			<name>Benjamin Wilhelm</name>
 			<url>https://github.com/HedgehogCode</url>
@@ -85,7 +94,7 @@
 
 	<properties>
 		<package-name>de.csbdresden</package-name>
-		<main-class>de.csbdresden.StarDist2D</main-class>
+		<main-class>de.csbdresden.stardist.StarDist2D</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Uwe Schmidt, Martin Weigert</license.copyrightOwners>
 	</properties>

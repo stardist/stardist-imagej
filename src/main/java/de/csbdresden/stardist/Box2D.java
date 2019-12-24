@@ -1,4 +1,4 @@
-package de.csbdresden;
+package de.csbdresden.stardist;
 
 public class Box2D {
     

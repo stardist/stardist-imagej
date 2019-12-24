@@ -1,4 +1,4 @@
-package de.csbdresden;
+package de.csbdresden.stardist;
 
 import java.io.File;
 import java.io.IOException;

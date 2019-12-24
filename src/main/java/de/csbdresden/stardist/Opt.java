@@ -1,4 +1,4 @@
-package de.csbdresden;
+package de.csbdresden.stardist;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

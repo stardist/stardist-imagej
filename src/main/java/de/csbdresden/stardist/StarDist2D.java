@@ -1,7 +1,7 @@
-package de.csbdresden;
+package de.csbdresden.stardist;
 
-import static de.csbdresden.StarDist2DModel.MODELS;
-import static de.csbdresden.StarDist2DModel.MODEL_DSB2018_V1;
+import static de.csbdresden.stardist.StarDist2DModel.MODELS;
+import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_V1;
 
 import java.io.File;
 import java.io.IOException;
