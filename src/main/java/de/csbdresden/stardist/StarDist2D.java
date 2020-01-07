@@ -1,7 +1,8 @@
 package de.csbdresden.stardist;
 
 import static de.csbdresden.stardist.StarDist2DModel.MODELS;
-import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_V1;
+import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_HEAVY_AUGMENTATION;
+import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_PAPER;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,7 +62,8 @@ public class StarDist2D extends StarDist2DBase implements Command {
     private Dataset input;
 
     @Parameter(label=Opt.MODEL,
-               choices={MODEL_DSB2018_V1,
+               choices={MODEL_DSB2018_HEAVY_AUGMENTATION,
+                        MODEL_DSB2018_PAPER,
                         Opt.MODEL_FILE,
                         Opt.MODEL_URL}, style=ChoiceWidget.LIST_BOX_STYLE)
     private String modelChoice = (String) Opt.getDefault(Opt.MODEL);
@@ -126,6 +128,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
     
     // TODO: values for block multiple and overlap
 
+    @Parameter(label=Opt.SET_THRESHOLDS, callback="setThresholds")
+    private Button restoreThresholds;
+
     @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
     private Button restoreDefaults;
 
@@ -152,6 +157,19 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     private void percentileTopChanged() {
         percentileBottom = Math.min(percentileBottom, percentileTop);
+    }
+    
+    private void setThresholds() {
+        switch (modelChoice) {
+        case Opt.MODEL_FILE:
+        case Opt.MODEL_URL:
+            showError("Only supported for built-in models.");
+            break;
+        default:
+            final StarDist2DModel model = MODELS.get(modelChoice);
+            probThresh = model.probThresh;
+            nmsThresh = model.nmsThresh;
+        }
     }
 
     private void checkForCSBDeep() {
@@ -210,6 +228,8 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 } else {
                     paramsCNN.put("modelUrl", pretrainedModel.url);
                 }
+                paramsCNN.put("blockMultiple", pretrainedModel.sizeDivBy);
+                paramsCNN.put("overlap", pretrainedModel.tileOverlap);
             }
             
             final HashMap<String, Object> paramsNMS = new HashMap<>();

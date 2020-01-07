@@ -12,12 +12,14 @@ import org.scijava.util.FileUtils;
 
 public class StarDist2DModel {
     
-    static final String MODEL_DSB2018_V1 = "DSB 2018 v1 (nuclei, fluorescence microscopy)";
-    static final String MODEL_DEFAULT = MODEL_DSB2018_V1;    
+    static final String MODEL_DSB2018_HEAVY_AUGMENTATION = "Versatile (fluorescent nuclei)";
+    static final String MODEL_DSB2018_PAPER = "DSB 2018 (from StarDist 2D paper)";
+    static final String MODEL_DEFAULT = MODEL_DSB2018_HEAVY_AUGMENTATION;    
     
     static final Map<String, StarDist2DModel> MODELS = new LinkedHashMap<String, StarDist2DModel>();
     static {
-        MODELS.put(MODEL_DSB2018_V1, new StarDist2DModel(StarDist2DModel.class.getClassLoader().getResource("models/2D/dsb2018_v1.zip"), 0.417819, 0.5));        
+        MODELS.put(MODEL_DSB2018_PAPER, new StarDist2DModel(StarDist2DModel.class.getClassLoader().getResource("models/2D/dsb2018_paper.zip"), 0.417819, 0.5, 8, 47));
+        MODELS.put(MODEL_DSB2018_HEAVY_AUGMENTATION, new StarDist2DModel(StarDist2DModel.class.getClassLoader().getResource("models/2D/dsb2018_heavy_augment.zip"), 0.479071, 0.3, 16, 94));
     }
     
     // -----------
@@ -25,13 +27,17 @@ public class StarDist2DModel {
     public final URL url;
     public final double probThresh;
     public final double nmsThresh;
+    public final int sizeDivBy;
+    public final int tileOverlap;
     private final String protocol;
     
-    public StarDist2DModel(URL url, double probThresh, double nmsThresh) {
+    public StarDist2DModel(URL url, double probThresh, double nmsThresh, int sizeDivBy, int tileOverlap) {
         this.url = url;
         this.protocol = url.getProtocol().toLowerCase();
         this.probThresh = probThresh;
         this.nmsThresh = nmsThresh;
+        this.sizeDivBy = sizeDivBy;
+        this.tileOverlap = tileOverlap;
     }
     
     public boolean canGetFile() {

@@ -32,7 +32,8 @@ public class Opt {
     static final String VERBOSE = "Verbose";
     static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
     static final String SHOW_PROB_DIST = "Show CNN Output";
-    static final String RESTORE_DEFAULTS = "Restore Defaults";    
+    static final String SET_THRESHOLDS = "Set optimized postprocessing thresholds (for selected model)";    
+    static final String RESTORE_DEFAULTS = "Restore Defaults";
     
     // TODO: add descriptions for all options
     
