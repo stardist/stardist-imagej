@@ -3,6 +3,7 @@ package de.csbdresden.stardist;
 import java.net.URL;
 import java.util.List;
 
+import org.scijava.app.StatusService;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -36,6 +37,9 @@ public abstract class StarDist2DBase {
 
     @Parameter
     protected DatasetService dataset;
+    
+    @Parameter
+    protected StatusService status;
     
     // ---------
     

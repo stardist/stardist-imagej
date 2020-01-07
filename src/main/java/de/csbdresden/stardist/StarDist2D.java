@@ -29,9 +29,11 @@ import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
+import net.imagej.ImgPlus;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Pair;
 import net.imglib2.util.ValuePair;
@@ -223,11 +225,12 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
             if (true && isTimelapse) {
                 // TODO: option to normalize timelapse frame by frame (currently) or jointly
+                final ImgPlus<? extends RealType<?>> inputImgPlus = input.getImgPlus();
                 final long numFrames = input.getFrames();
                 final int inputTimeDim = IntStream.range(0, inputAxes.size()).filter(d -> input.axis(d).type() == Axes.TIME).findFirst().getAsInt();
                 for (int t = 0; t < numFrames; t++) {
                     final Dataset inputFrameDS = Utils.raiToDataset(dataset, "Input Frame",
-                            Views.hyperSlice(input.getImgPlus(), inputTimeDim, t),
+                            Views.hyperSlice(inputImgPlus, inputTimeDim, t),
                             inputAxes.stream().filter(axis -> axis != Axes.TIME));
                     paramsCNN.put("input", inputFrameDS);
                     final Future<CommandModule> futureCNN = command.run(de.csbdresden.csbdeep.commands.GenericNetwork.class, false, paramsCNN);
@@ -247,6 +250,8 @@ public class StarDist2D extends StarDist2DBase implements Command {
                     final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                     final Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
                     export(outputType, polygons, 1+t);
+                    
+                    status.showProgress(1+t, (int)numFrames);
                 }
                 label = labelImageToDataset(outputType);
 
@@ -284,7 +289,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         }
     }
     
-    
+    // this function is very cumbersome... is there a better way to do this?
     private Pair<Dataset, Dataset> splitPrediction(final Dataset prediction) {
         final RandomAccessibleInterval<FloatType> predictionRAI = (RandomAccessibleInterval<FloatType>) prediction.getImgPlus();
         final LinkedHashSet<AxisType> predAxes = Utils.orderedAxesSet(prediction);
@@ -336,8 +341,8 @@ public class StarDist2D extends StarDist2DBase implements Command {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
 
-        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
-//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
+        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
         ij.ui().show(input);
 
         final HashMap<String, Object> params = new HashMap<>();

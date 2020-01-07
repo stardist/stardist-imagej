@@ -137,8 +137,8 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         if (!( distAxesArray[0] == Axes.X && distAxesArray[1] == Axes.Y ))
             return showError("First two axes of Distance must be a X and Y.");        
 
-        if (!(0 <= nmsThresh && nmsThresh < 1))
-            return showError("NMS Threshold must be in interval [0,1).");
+        if (!(0 <= nmsThresh && nmsThresh <= 1))
+            return showError("NMS Threshold must be between 0 and 1.");
 
         if (excludeBoundary < 0)
             return showError("Boundary Exclusion must be >= 0");
