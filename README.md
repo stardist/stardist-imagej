@@ -20,3 +20,8 @@ Concretely, you can follow these steps:
 (If `StarDist` is missing, click `Add update site` and add it manually with URL `https://sites.imagej.net/StarDist/`.)
 6. Click on `Apply changes` to install the plugin.
 7. Restart Fiji.
+
+
+## Usage
+
+See the [wiki page](https://imagej.net/StarDist) for more information.
