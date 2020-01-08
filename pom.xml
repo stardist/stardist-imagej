@@ -10,7 +10,7 @@
 	</parent>
 
 	<groupId>de.csbdresden</groupId>
-	<artifactId>StarDist</artifactId>
+	<artifactId>StarDist_</artifactId>
 	<version>0.1.2-SNAPSHOT</version>
 
 	<name>StarDist</name>

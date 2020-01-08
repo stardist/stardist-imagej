@@ -8,6 +8,8 @@ import java.util.stream.IntStream;
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
+import org.scijava.menu.MenuConstants;
+import org.scijava.plugin.Menu;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.widget.Button;
@@ -24,7 +26,12 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.view.Views;
 
-@Plugin(type = Command.class, menuPath = "Plugins > StarDist > Other > StarDist 2D NMS (postprocessing only)", label = "StarDist 2D NMS")
+@Plugin(type = Command.class, label = "StarDist 2D NMS", menu = {
+        @Menu(label = MenuConstants.PLUGINS_LABEL, weight = MenuConstants.PLUGINS_WEIGHT, mnemonic = MenuConstants.PLUGINS_MNEMONIC),
+        @Menu(label = "StarDist"),
+        @Menu(label = "Other"),
+        @Menu(label = "StarDist 2D NMS (postprocessing only)", weight = 2)
+}) 
 public class StarDist2DNMS extends StarDist2DBase implements Command {
     
     @Parameter(label=Opt.PROB_IMAGE)
