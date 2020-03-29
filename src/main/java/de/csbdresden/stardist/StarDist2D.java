@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 
 import javax.swing.JOptionPane;
 
+import ij.plugin.frame.Recorder;
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
@@ -200,6 +201,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Override
     public void run() {
+        record();
         checkForCSBDeep();
         if (!checkInputs()) return;
         
@@ -314,7 +316,39 @@ public class StarDist2D extends StarDist2DBase implements Command {
             }
         }
     }
-    
+
+    private void record() {
+         if (Recorder.getInstance() == null) {
+                return;
+         }
+
+         // prevent recording of run("Star Dist 2D");
+         Recorder.setCommand(null);
+
+         // record by hand
+         Recorder.recordString("run(\"" +
+                 "StarDist 2D (from Macro)" +
+                 "\", \"" +
+                 "input=[" + IJ.getImage().getTitle() + "] " +
+                 "modelChoice=[" + modelChoice + "] " +
+                 "modelFile=[" + modelFile + "] " +
+                 "modelUrl=[" + modelUrl + "] " +
+                 (normalizeInput?"normalizeinput ":"") +
+                 "percentileBottom=" + percentileBottom + " " +
+                 "percentileTop=" + percentileTop + " " +
+                 "probThresh=" + probThresh + " " +
+                 "nmsThresh=" + nmsThresh + " " +
+                 "outputType=" + outputType + " " +
+                 "nTiles=" + nTiles + " " +
+                 "excludeBoundary=" + excludeBoundary + " " +
+                 (verbose?"verbose ":"") +
+                 (showCsbdeepProgress?"showcsbdeepprogress ":"") +
+                 (showProbAndDist?"showprobanddist ":"") +
+                 "\");\n"
+         );
+
+    }
+
     // this function is very cumbersome... is there a better way to do this?
     private Pair<Dataset, Dataset> splitPrediction(final Dataset prediction) {
         final RandomAccessibleInterval<FloatType> predictionRAI = (RandomAccessibleInterval<FloatType>) prediction.getImgPlus();
