@@ -88,30 +88,38 @@ public abstract class StarDist2DBase {
     
     protected void exportROIs(Candidates polygons, int framePosition) {
         if (roiManager == null) {
-            IJ.run("ROI Manager...", "");
-            roiManager = RoiManager.getInstance();
+            roiManager = RoiManager.getRoiManager();
             roiManager.reset(); // clear all rois
         }
+
+        // Setting the RoiManager to invisible, the position of the ROI will be properly saved.
+        // The issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
+        roiManager.setVisible(false);
+
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(i));
-            // if (framePosition > 0) polyRoi.setPosition(0, 0, framePosition);
-            if (framePosition > 0) polyRoi.setPosition(framePosition);
+            if (framePosition > 0) polyRoi.setPosition(1, 1, framePosition);
+            //if (framePosition > 0) polyRoi.setPosition(framePosition);
             roiManager.addRoi(polyRoi);
             if (exportPointRois) {
                 final Point2D o = polygons.getOrigin(i);
                 final PointRoi pointRoi = new PointRoi(o.x, o.y);
-                // if (framePosition > 0) pointRoi.setPosition(0, 0, framePosition);
-                if (framePosition > 0) pointRoi.setPosition(framePosition);
+                if (framePosition > 0) pointRoi.setPosition(1, 1, framePosition);
+                //if (framePosition > 0) pointRoi.setPosition(framePosition);
                 roiManager.addRoi(pointRoi);
             }
             if (exportBboxRois) {
                 final Box2D bbox = polygons.getBbox(i);
                 final Roi bboxRoi = new Roi(bbox.xmin, bbox.ymin, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin);
-                // if (framePosition > 0) bboxRoi.setPosition(0, 0, framePosition);
-                if (framePosition > 0) bboxRoi.setPosition(framePosition);
+                if (framePosition > 0) bboxRoi.setPosition(1, 1, framePosition);
+                //if (framePosition > 0) bboxRoi.setPosition(framePosition);
                 roiManager.addRoi(bboxRoi);
             }
         }
+
+        //Setting the RoiManager back to visible at the end of the processing
+        roiManager.setVisible(true);
+
     }
    
     protected void exportLabelImage(Candidates polygons, int framePosition) {
