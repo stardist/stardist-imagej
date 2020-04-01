@@ -4,10 +4,15 @@ import java.net.URL;
 import java.util.List;
 
 import org.scijava.app.StatusService;
+import org.scijava.command.Command;
+import org.scijava.command.CommandInfo;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
 import org.scijava.ui.DialogPrompt.MessageType;
+
+import de.csbdresden.CommandFromMacro;
+
 import org.scijava.ui.UIService;
 
 import ij.IJ;
@@ -15,6 +20,7 @@ import ij.ImagePlus;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
 import ij.gui.Roi;
+import ij.plugin.frame.Recorder;
 import ij.plugin.frame.RoiManager;
 import ij.process.ImageProcessor;
 import net.imagej.Dataset;
@@ -24,7 +30,7 @@ import net.imagej.axis.AxisType;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 
-public abstract class StarDist2DBase {
+public abstract class StarDist2DBase implements Command {
     
     @Parameter
     protected LogService log;
@@ -145,7 +151,7 @@ public abstract class StarDist2DBase {
     abstract protected ImagePlus createLabelImage();
     
     protected Dataset labelImageToDataset(String outputType) {
-        if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
+        if (labelIsOutput(outputType)) {
             if (labelCount > MAX_LABEL_ID) {
                 log.error(String.format("Found more than %d segments -> label image does contain some repetitive IDs.\n(\"%s\" output instead does not have this problem).", MAX_LABEL_ID, Opt.OUTPUT_ROI_MANAGER));
             }
@@ -156,7 +162,28 @@ public abstract class StarDist2DBase {
             return Utils.raiToDataset(dataset, Opt.LABEL_IMAGE, labelImg, axes);
         } else {
             return null;
-        }
-        
+        }        
     }
+    
+    protected boolean labelIsOutput(String outputType) {
+        return outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH);        
+    }
+    
+    protected void record(String... outputs) {
+        if (Recorder.getInstance() == null)
+            return;
+        final String recorded = Recorder.getCommand();
+        // System.out.println("RECORDED: " + recorded);
+        final CommandInfo info = command.getCommand(this.getClass());
+        // only proceed if this command is being recorded
+        final String cmdName = info.getMenuPath().getLeaf().getName();
+        // final String cmdName = info.getLabel();
+        if (recorded==null || !recorded.equals(cmdName))
+            return;
+        // prevent automatic recording
+        Recorder.setCommand(null);
+        // record manually
+        Recorder.recordString(CommandFromMacro.getMacroCall(this, info, outputs));
+    }
+    
 }

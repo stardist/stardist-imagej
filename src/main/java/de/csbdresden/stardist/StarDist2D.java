@@ -46,7 +46,7 @@ import net.imglib2.view.Views;
         @Menu(label = MenuConstants.PLUGINS_LABEL, weight = MenuConstants.PLUGINS_WEIGHT, mnemonic = MenuConstants.PLUGINS_MNEMONIC),
         @Menu(label = "StarDist"),
         @Menu(label = "StarDist 2D", weight = 1)
-}) 
+})
 public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label="", visibility=ItemVisibility.MESSAGE, initializer="checkForCSBDeep")
@@ -280,6 +280,10 @@ public class StarDist2D extends StarDist2DBase implements Command {
                     status.showProgress(1+t, (int)numFrames);
                 }
                 label = labelImageToDataset(outputType);
+                if (labelIsOutput(outputType))
+                    record("label");
+                else
+                    record();
 
             } else {
                 // note: the code below supports timelapse data too. differences to above:
@@ -298,6 +302,15 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 if (showProbAndDist) {
                     prob = probDS;
                     dist = distDS;
+                    if (labelIsOutput(outputType))
+                        record("label","prob","dist");
+                    else
+                        record("prob","dist");
+                } else {
+                    if (labelIsOutput(outputType))
+                        record("label");
+                    else
+                        record();
                 }
 
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);

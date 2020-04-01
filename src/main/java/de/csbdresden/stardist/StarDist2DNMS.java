@@ -113,6 +113,10 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         }
         
         label = labelImageToDataset(outputType);
+        if (labelIsOutput(outputType))
+            record("label");
+        else
+            record();
     }
     
 
