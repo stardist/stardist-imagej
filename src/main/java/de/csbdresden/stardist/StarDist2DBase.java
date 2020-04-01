@@ -183,7 +183,7 @@ public abstract class StarDist2DBase implements Command {
         // prevent automatic recording
         Recorder.setCommand(null);
         // record manually
-        Recorder.recordString(CommandFromMacro.getMacroCall(this, info, outputs));
+        Recorder.recordString(CommandFromMacro.getMacroString(this, info, outputs));
     }
     
 }
