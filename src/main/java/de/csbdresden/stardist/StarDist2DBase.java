@@ -4,7 +4,6 @@ import java.net.URL;
 import java.util.List;
 
 import org.scijava.app.StatusService;
-import org.scijava.command.Command;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.plugin.Parameter;
@@ -24,7 +23,7 @@ import net.imagej.axis.AxisType;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 
-public abstract class StarDist2DBase implements Command {
+public abstract class StarDist2DBase {
     
     @Parameter
     protected LogService log;
@@ -145,7 +144,7 @@ public abstract class StarDist2DBase implements Command {
     abstract protected ImagePlus createLabelImage();
     
     protected Dataset labelImageToDataset(String outputType) {
-        if (labelIsOutput(outputType)) {
+        if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
             if (labelCount > MAX_LABEL_ID) {
                 log.error(String.format("Found more than %d segments -> label image does contain some repetitive IDs.\n(\"%s\" output instead does not have this problem).", MAX_LABEL_ID, Opt.OUTPUT_ROI_MANAGER));
             }
@@ -157,9 +156,5 @@ public abstract class StarDist2DBase implements Command {
         } else {
             return null;
         }        
-    }
-    
-    protected boolean labelIsOutput(String outputType) {
-        return outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH);        
     }
 }
