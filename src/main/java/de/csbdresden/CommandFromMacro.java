@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -28,9 +29,9 @@ import org.scijava.ui.UIService;
 import com.google.gson.Gson;
 
 import de.csbdresden.stardist.StarDist2D;
-import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.plugin.frame.Recorder;
 import net.imagej.Dataset;
 import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
@@ -66,10 +67,21 @@ public class CommandFromMacro implements Command {
     @Override
     public void run() {
 
-        final CommandInfo info = cmd.getCommand(command);
+        CommandInfo info = cmd.getCommand(command);
         if (info == null) {
-            log.warn(String.format("Command \"%s\" not found.", command));
-            return;
+            for (CommandInfo c: cmd.getCommands()) {
+                try {
+                    if (command.equals(c.getMenuPath().getLeaf().getName())) {
+                        info = c;
+                        command = info.getClassName();
+                        break;
+                    }
+                } catch (NullPointerException e) {}
+            }
+            if (info == null) {
+                log.error(String.format("Command \"%s\" not found.", command));
+                return;
+            }
         }
 
         final Map<String,Object> params = new LinkedHashMap<>();
@@ -135,16 +147,37 @@ public class CommandFromMacro implements Command {
         log.error(String.format("Cannot process arguments of class \"%s\".", clazz.getName()));
         return null;
     }
-
-
-    public static String getMacroString(final Command command, final CommandInfo info, final String... outputs) {
-        return getMacroString(command, info, false, outputs);
+    
+    
+    public static boolean record(final Command command, final CommandService commandService) {
+        return record(command, commandService, false);
+    }    
+    
+    public static boolean record(final Command command, final CommandService commandService, final boolean process) {
+        if (Recorder.getInstance() == null)
+            return false;
+        final String recorded = Recorder.getCommand();
+        // System.out.println("RECORDED: " + recorded);
+        final CommandInfo info = commandService.getCommand(command.getClass());
+        // only proceed if this command is being recorded
+        final String name = info.getMenuPath().getLeaf().getName();
+        // final String cmdName = info.getLabel();
+        if (recorded==null || !recorded.equals(name))
+            return false;
+        // prevent automatic recording
+        Recorder.setCommand(null);
+        // record manually
+        Recorder.recordString(getMacroString(command, commandService, process));
+        return true;
     }
-
-    public static String getMacroString(final Command command, final CommandInfo info, final boolean process, final String... outputs) {
+    
+    
+    private static String getMacroString(final Command command, final CommandService commandService, final boolean process) {
         final Class<?> commandClass = command.getClass();
+        final CommandInfo info = commandService.getCommand(command.getClass());
         final Map<String,String> args = new LinkedHashMap<>();
 
+        // add input parameters as arguments
         for (final ModuleItem<?> item : info.inputs()) {
             final String name = item.getName();
             final Class<?> clazz = item.getType();
@@ -169,16 +202,43 @@ public class CommandFromMacro implements Command {
             }
         }
 
-        for (final String name : outputs) {
-            if (info.getOutput(name) != null)
+        // designate assigned outputs to be shown
+        for (final ModuleItem<?> item : info.outputs()) {
+            final String name = item.getName();
+            try {
+                final Field field = commandClass.getDeclaredField(name);
+                if (!field.isAccessible()) field.setAccessible(true);
+                final Object value = field.get(command);
+                // skip unassigned outputs
+                if (value == null)
+                    continue;
                 args.put(name, "");
+            } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
 
+        // convert to json and remove curly braces
         String argsStr = new Gson().toJson(args);
-        argsStr = argsStr.substring(1, argsStr.length()-1); // remove curly braces
-        argsStr = StringEscapeUtils.escapeJava(argsStr);    // escape all quotes, etc.
+        argsStr = argsStr.substring(1, argsStr.length()-1);
+        // to make the macro string look nicer (otherwise have to escape all double quotes):
+        // replace double quotes around json keys/values with single quotes
+        // technically not correct json, but can be parsed by Gson
+        final StringBuilder sb = new StringBuilder(argsStr);
+        int p = 0;
+        for (Entry<String, String> arg: args.entrySet()) {
+            final int k = StringEscapeUtils.escapeJava(arg.getKey()).length();
+            final int v = StringEscapeUtils.escapeJava(arg.getValue()).length();
+            sb.replace(p, p+1, "'"); p+=1+k;
+            sb.replace(p, p+1, "'"); p+=2;
+            sb.replace(p, p+1, "'"); p+=1+v;
+            sb.replace(p, p+1, "'"); p+=2;            
+        }
+        argsStr = sb.toString();
+        
+        final String execName = commandService.getCommand(CommandFromMacro.class).getMenuPath().getLeaf().getName();
         return String.format("run(\"%s\", \"command=[%s], process=[%s], args=[%s]\");\n",
-                CommandFromMacro.class.getSimpleName(), commandClass.getName(), String.valueOf(process), argsStr);
+                execName, commandClass.getName(), String.valueOf(process), argsStr);
     }
 
 
@@ -193,10 +253,15 @@ public class CommandFromMacro implements Command {
 //        Dataset input2 = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
 //        ij.ui().show(input2);
 
-//        Recorder recorder = new Recorder();
-//        recorder.show();
+        Recorder recorder = new Recorder();
+        recorder.show();
+        
+        final Map<String, Object> params = new LinkedHashMap<>();
+        // params.put("input", input);
+        ij.command().run(StarDist2D.class, true, params);
+        
 
-        IJ.run("CommandFromMacro", "args=[\"input\":\"yeast_crop.tif\", \"label\":\"\"], process=[false], command=[de.csbdresden.stardist.StarDist2D]");
+//        IJ.run("CommandFromMacro", "args=[\"input\":\"yeast_crop.tif\", \"label\":\"\"], process=[false], command=[de.csbdresden.stardist.StarDist2D]");
     }
 
 

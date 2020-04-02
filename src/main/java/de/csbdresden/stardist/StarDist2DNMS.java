@@ -16,6 +16,7 @@ import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 import org.scijava.widget.NumberWidget;
 
+import de.csbdresden.CommandFromMacro;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
@@ -113,10 +114,9 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         }
         
         label = labelImageToDataset(outputType);
-        if (labelIsOutput(outputType))
-            record("label");
-        else
-            record();
+
+        // call at the end of the run() method
+        CommandFromMacro.record(this, this.command);
     }
     
 

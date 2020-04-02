@@ -28,6 +28,7 @@ import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 import org.scijava.widget.NumberWidget;
 
+import de.csbdresden.CommandFromMacro;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
@@ -280,10 +281,6 @@ public class StarDist2D extends StarDist2DBase implements Command {
                     status.showProgress(1+t, (int)numFrames);
                 }
                 label = labelImageToDataset(outputType);
-                if (labelIsOutput(outputType))
-                    record("label");
-                else
-                    record();
 
             } else {
                 // note: the code below supports timelapse data too. differences to above:
@@ -302,19 +299,13 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 if (showProbAndDist) {
                     prob = probDS;
                     dist = distDS;
-                    if (labelIsOutput(outputType))
-                        record("label","prob","dist");
-                    else
-                        record("prob","dist");
-                } else {
-                    if (labelIsOutput(outputType))
-                        record("label");
-                    else
-                        record();
                 }
 
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
-                label = (Dataset) futureNMS.get().getOutput("label");                
+                label = (Dataset) futureNMS.get().getOutput("label");
+                
+                // call at the end of the run() method
+                CommandFromMacro.record(this, this.command);                
             }
         } catch (InterruptedException | ExecutionException | IOException e) {
             e.printStackTrace();
@@ -383,6 +374,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
 //        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
         Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
         ij.ui().show(input);
+        
+//        Recorder recorder = new Recorder();
+//        recorder.show();
 
         final HashMap<String, Object> params = new HashMap<>();
         ij.command().run(StarDist2D.class, true, params);
