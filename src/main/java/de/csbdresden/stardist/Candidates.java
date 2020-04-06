@@ -12,6 +12,9 @@ import de.lighti.clipper.DefaultClipper;
 import de.lighti.clipper.Path;
 import de.lighti.clipper.Paths;
 import de.lighti.clipper.Point.LongPoint;
+import ij.gui.PointRoi;
+import ij.gui.PolygonRoi;
+import ij.gui.Roi;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.real.FloatType;
@@ -29,6 +32,7 @@ public class Candidates {
     private final boolean[] suppressed;
     private final boolean verbose;
     private final LogService log;
+    public static final long S = 100;
     
     public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist) {
         this(prob, dist, 0.4);
@@ -65,8 +69,8 @@ public class Candidates {
                     for (int k = 0; k < nrays; k++) {
                         s.setPosition(k, 2);
                         FloatType d = s.get();
-                        long x = Math.round(i + d.getRealDouble() * Math.cos(phis[k]));
-                        long y = Math.round(j + d.getRealDouble() * Math.sin(phis[k]));
+                        long x = Math.round(S * (i + d.getRealDouble() * Math.cos(phis[k])));
+                        long y = Math.round(S * (j + d.getRealDouble() * Math.sin(phis[k])));
                         xmin = Math.min(xmin,x);
                         ymin = Math.min(ymin,y);
                         xmax = Math.max(xmax,x);
@@ -75,7 +79,7 @@ public class Candidates {
                     }
                     polygons.add(poly);
                     bboxes.add(new Box2D(xmin,xmax,ymin,ymax));
-                    origins.add(new Point2D(i,j));
+                    origins.add(new Point2D(S*i,S*j));
                     scores.add(score);
                     areas.add(poly.area());
                 }
@@ -165,24 +169,36 @@ public class Candidates {
         return score_indices;
     }
     
-    public Point2D getOrigin(int i) {
-        return origins.get(i);
+//    public Point2D getOrigin(int i) {
+//        return origins.get(i);
+//    }
+    
+//    public Path getPolygon(int i) {
+//        return polygons.get(i);
+//    }
+
+//    public Box2D getBbox(int i) {
+//        return bboxes.get(i);
+//    }
+
+//    public float getScore(int i) {
+//        return scores.get(i);
+//    }
+
+//    public double getArea(int i) {
+//        return areas.get(i);
+//    }
+    
+    public PolygonRoi getPolygonRoi(int i) {
+        return Utils.toPolygonRoi(polygons.get(i), S);
     }
     
-    public Path getPolygon(int i) {
-        return polygons.get(i);
+    public PointRoi getOriginRoi(int i) {
+        return Utils.toPointRoi(origins.get(i), S);
     }
-
-    public Box2D getBbox(int i) {
-        return bboxes.get(i);
-    }
-
-    public float getScore(int i) {
-        return scores.get(i);
-    }
-
-    public double getArea(int i) {
-        return areas.get(i);
+    
+    public Roi getBboxRoi(int i) {
+        return Utils.toBoxRoi(bboxes.get(i), S);
     }
 
 

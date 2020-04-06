@@ -97,20 +97,18 @@ public abstract class StarDist2DBase {
         roiManager.setVisible(false);
 
         for (final int i : polygons.getWinner()) {
-            final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(i));
+            final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
             if (framePosition > 0) polyRoi.setPosition(1, 1, framePosition);
             //if (framePosition > 0) polyRoi.setPosition(framePosition);
             roiManager.addRoi(polyRoi);
             if (exportPointRois) {
-                final Point2D o = polygons.getOrigin(i);
-                final PointRoi pointRoi = new PointRoi(o.x, o.y);
+                final PointRoi pointRoi = polygons.getOriginRoi(i);
                 if (framePosition > 0) pointRoi.setPosition(1, 1, framePosition);
                 //if (framePosition > 0) pointRoi.setPosition(framePosition);
                 roiManager.addRoi(pointRoi);
             }
             if (exportBboxRois) {
-                final Box2D bbox = polygons.getBbox(i);
-                final Roi bboxRoi = new Roi(bbox.xmin, bbox.ymin, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin);
+                final Roi bboxRoi = polygons.getBboxRoi(i);
                 if (framePosition > 0) bboxRoi.setPosition(1, 1, framePosition);
                 //if (framePosition > 0) bboxRoi.setPosition(framePosition);
                 roiManager.addRoi(bboxRoi);
@@ -132,7 +130,7 @@ public abstract class StarDist2DBase {
         final int numWinners = winner.size();
         // winners are ordered by score -> draw from last to first to give priority to higher scores in case of overlaps
         for (int i = numWinners-1; i >= 0; i--) {
-            final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(winner.get(i)));
+            final PolygonRoi polyRoi = polygons.getPolygonRoi(winner.get(i));
             ip.setColor(1 + ((labelId + i) % MAX_LABEL_ID));
             ip.fill(polyRoi);
         }
