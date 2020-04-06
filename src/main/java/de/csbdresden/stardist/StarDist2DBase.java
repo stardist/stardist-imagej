@@ -10,7 +10,6 @@ import org.scijava.plugin.Parameter;
 import org.scijava.ui.DialogPrompt.MessageType;
 import org.scijava.ui.UIService;
 
-import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.PointRoi;
 import ij.gui.PolygonRoi;
@@ -25,7 +24,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 
 public abstract class StarDist2DBase {
-    
+
     @Parameter
     protected LogService log;
 
@@ -37,12 +36,12 @@ public abstract class StarDist2DBase {
 
     @Parameter
     protected DatasetService dataset;
-    
+
     @Parameter
     protected StatusService status;
-    
+
     // ---------
-    
+
     protected boolean exportPointRois = false;
     protected boolean exportBboxRois = false;
 
@@ -51,31 +50,31 @@ public abstract class StarDist2DBase {
     protected int labelId = 0;
     protected long labelCount = 0;
     protected static final int MAX_LABEL_ID = 65535;
-    
+
     // ---------
-    
+
     protected URL getResource(final String name) {
         return StarDist2DBase.class.getClassLoader().getResource(name);
-    }        
-    
+    }
+
     protected boolean showError(String msg) {
         ui.showDialog(msg, MessageType.ERROR_MESSAGE);
         // log.error(msg);
         return false;
     }
-    
+
     // ---------
-    
-    protected void export(String outputType, Candidates polygons, int framePosition) {
+
+    protected void export(String outputType, Candidates polygons, int framePosition, long numFrames) {
         switch (outputType) {
         case Opt.OUTPUT_ROI_MANAGER:
-            exportROIs(polygons, framePosition);
+            exportROIs(polygons, framePosition, numFrames);
             break;
         case Opt.OUTPUT_LABEL_IMAGE:
             exportLabelImage(polygons, framePosition);
             break;
         case Opt.OUTPUT_BOTH:
-            exportROIs(polygons, framePosition);
+            exportROIs(polygons, framePosition, numFrames);
             exportLabelImage(polygons, framePosition);
             break;
         case Opt.OUTPUT_POLYGONS:
@@ -85,16 +84,16 @@ public abstract class StarDist2DBase {
             showError(String.format("Unknown output type \"%s\"", outputType));
         }
     }
-    
-    protected void exportROIs(Candidates polygons, int framePosition) {
+
+    protected void exportROIs(Candidates polygons, int framePosition, long numFrames) {
         if (roiManager == null) {
             roiManager = RoiManager.getRoiManager();
             roiManager.reset(); // clear all rois
+            // https://github.com/mpicbg-csbd/stardist-imagej/pull/5:
+            // when setting the RoiManager to invisible, the position of the ROI will be properly saved
+            // -> the issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
+            roiManager.setVisible(false);            
         }
-
-        // Setting the RoiManager to invisible, the position of the ROI will be properly saved.
-        // The issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
-        roiManager.setVisible(false);
 
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
@@ -115,11 +114,11 @@ public abstract class StarDist2DBase {
             }
         }
 
-        //Setting the RoiManager back to visible at the end of the processing
-        roiManager.setVisible(true);
-
+        // make the RoiManager visible after adding the ROIs
+        if (framePosition == 0 || framePosition == numFrames)
+            roiManager.setVisible(true);
     }
-   
+
     protected void exportLabelImage(Candidates polygons, int framePosition) {
         if (labelImage == null)
             labelImage = createLabelImage();
@@ -136,12 +135,12 @@ public abstract class StarDist2DBase {
         }
         labelCount += numWinners;
         labelId = (labelId + numWinners) % MAX_LABEL_ID;
-    }    
-    
-    abstract protected void exportPolygons(Candidates polygons);    
-    
+    }
+
+    abstract protected void exportPolygons(Candidates polygons);
+
     abstract protected ImagePlus createLabelImage();
-    
+
     protected Dataset labelImageToDataset(String outputType) {
         if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
             if (labelCount > MAX_LABEL_ID) {
@@ -155,6 +154,6 @@ public abstract class StarDist2DBase {
         } else {
             return null;
         }
-        
+
     }
 }

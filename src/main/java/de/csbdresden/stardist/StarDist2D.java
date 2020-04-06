@@ -275,8 +275,8 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
                     final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                     final Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
-                    export(outputType, polygons, 1+t);
-                    
+                    export(outputType, polygons, 1+t, numFrames);
+
                     status.showProgress(1+t, (int)numFrames);
                 }
                 label = labelImageToDataset(outputType);

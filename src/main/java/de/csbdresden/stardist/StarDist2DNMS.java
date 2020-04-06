@@ -31,9 +31,9 @@ import net.imglib2.view.Views;
         @Menu(label = "StarDist"),
         @Menu(label = "Other"),
         @Menu(label = "StarDist 2D NMS (postprocessing only)", weight = 2)
-}) 
+})
 public class StarDist2DNMS extends StarDist2DBase implements Command {
-    
+
     @Parameter(label=Opt.PROB_IMAGE)
     private Dataset prob;
 
@@ -54,7 +54,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.OUTPUT_TYPE, choices={Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
     private String outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
-    
+
     // ---------
 
     @Parameter(visibility=ItemVisibility.MESSAGE)
@@ -87,7 +87,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
         final RandomAccessibleInterval<FloatType> probRAI = (RandomAccessibleInterval<FloatType>) prob.getImgPlus();
         final RandomAccessibleInterval<FloatType> distRAI = (RandomAccessibleInterval<FloatType>) dist.getImgPlus();
-        
+
         final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
         final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
         final boolean isTimelapse = probAxes.contains(Axes.TIME);
@@ -102,24 +102,24 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
                 polygons.nms(nmsThresh);
                 if (verbose)
                     log.info(String.format("frame %03d: %d polygon candidates, %d remain after non-maximum suppression", t, polygons.getSorted().size(), polygons.getWinner().size()));
-                export(outputType, polygons, 1+t);
+                export(outputType, polygons, 1+t, numFrames);
             }
         } else {
             final Candidates polygons = new Candidates(probRAI, distRAI, probThresh, excludeBoundary, verbose ? log : null);
             polygons.nms(nmsThresh);
             if (verbose)
                 log.info(String.format("%d polygon candidates, %d remain after non-maximum suppression", polygons.getSorted().size(), polygons.getWinner().size()));
-            export(outputType, polygons, 0);
+            export(outputType, polygons, 0, 0);
         }
-        
+
         label = labelImageToDataset(outputType);
     }
-    
+
 
     private boolean checkInputs() {
         final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
         final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
-        
+
         if (!( (prob.numDimensions() == 2 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y))) ||
                (prob.numDimensions() == 3 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.TIME))) ))
             return showError("Probability/Score must be a 2D image or timelapse.");
@@ -136,13 +136,13 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
         if (prob.getFrames() != dist.getFrames())
             return showError("Number of frames of Probability/Score and Distance differ.");
-        
+
         final AxisType[] probAxesArray = probAxes.stream().toArray(AxisType[]::new);
         final AxisType[] distAxesArray = distAxes.stream().toArray(AxisType[]::new);
         if (!( probAxesArray[0] == Axes.X && probAxesArray[1] == Axes.Y ))
             return showError("First two axes of Probability/Score must be a X and Y.");
         if (!( distAxesArray[0] == Axes.X && distAxesArray[1] == Axes.Y ))
-            return showError("First two axes of Distance must be a X and Y.");        
+            return showError("First two axes of Distance must be a X and Y.");
 
         if (!(0 <= nmsThresh && nmsThresh <= 1))
             return showError("NMS Threshold must be between 0 and 1.");
@@ -152,25 +152,25 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
         if (!(outputType.equals(Opt.OUTPUT_ROI_MANAGER) || outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH) || outputType.equals(Opt.OUTPUT_POLYGONS)))
             return showError(String.format("Output Type must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH));
-        
+
         if (outputType.equals(Opt.OUTPUT_POLYGONS) && probAxes.contains(Axes.TIME))
-            return showError(String.format("Timelapse not supported for output type \"%s\"", Opt.OUTPUT_POLYGONS));        
-        
+            return showError(String.format("Timelapse not supported for output type \"%s\"", Opt.OUTPUT_POLYGONS));
+
         return true;
     }
 
-    
+
     @Override
     protected void exportPolygons(Candidates polygons) {
         this.polygons = polygons;
     }
-    
+
     @Override
     protected ImagePlus createLabelImage() {
         return IJ.createImage("Labeling", "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
     }
 
-    
+
     public static void main(final String... args) throws Exception {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
