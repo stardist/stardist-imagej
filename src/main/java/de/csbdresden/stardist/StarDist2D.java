@@ -212,7 +212,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         if (!checkInputs()) return;
 
         if (roiPosition.equals(Opt.ROI_POSITION_AUTO))
-            roiPositionActive = input.numDimensions() > 3 ? Opt.ROI_POSITION_HYPERSTACK : Opt.ROI_POSITION_STACK;
+            roiPositionActive = input.numDimensions() > 3 && !input.isRGBMerged() ? Opt.ROI_POSITION_HYPERSTACK : Opt.ROI_POSITION_STACK;
         else
             roiPositionActive = roiPosition;
 
