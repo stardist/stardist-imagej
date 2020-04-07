@@ -53,7 +53,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
     private final String msgTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Object Detection with Star-convex Shapes</h2>" +
-            "<a href='https://github.com/mpicbg-csbd/stardist'>https://github.com/mpicbg-csbd/stardist</a>" +
+            "<a href='https://imagej.net/StarDist'>https://imagej.net/StarDist</a>" +
             "<br/><br/><small>Please cite our paper if StarDist was helpful for your research. Thanks!</small>" +
             "</td><td>&nbsp;&nbsp;<img src='"+getResource("images/logo.png")+"' width='100' height='100'></img><td>" +
             "</tr></table>" +
