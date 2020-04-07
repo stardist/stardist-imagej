@@ -11,7 +11,7 @@
 
 	<groupId>de.csbdresden</groupId>
 	<artifactId>StarDist_</artifactId>
-	<version>0.1.1</version>
+	<version>0.2.0</version>
 
 	<name>StarDist</name>
 	<description>StarDist - Object Detection with Star-convex Shapes</description>
@@ -69,6 +69,16 @@
 			<url>https://github.com/frauzufall</url>
 			<roles><role>reviewer</role></roles>
 		</contributor>
+		<contributor>
+			<name>Olivier Burri</name>
+			<url>https://github.com/lacan</url>
+			<roles><role>developer</role></roles>
+		</contributor>
+		<contributor>
+			<name>Romain Guiet</name>
+			<url>https://github.com/romainGuiet</url>
+			<roles><role>developer</role></roles>
+		</contributor>
 	</contributors>
 
 	<mailingLists>
@@ -79,14 +89,14 @@
 	</mailingLists>
 
 	<scm>
-		<connection>scm:git:git://github.com/uschmidt83/stardist-imagej</connection>
-		<developerConnection>scm:git:git://github.com/uschmidt83/stardist-imagej</developerConnection>
+		<connection>scm:git:git://github.com/mpicbg-csbd/stardist-imagej</connection>
+		<developerConnection>scm:git:git://github.com/mpicbg-csbd/stardist-imagej</developerConnection>
 		<tag>HEAD</tag>
-		<url>https://github.com/uschmidt83/stardist-imagej</url>
+		<url>https://github.com/mpicbg-csbd/stardist-imagej</url>
 	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
-		<url>https://github.com/uschmidt83/stardist-imagej/issues</url>
+		<url>https://github.com/mpicbg-csbd/stardist-imagej/issues</url>
 	</issueManagement>
 	<ciManagement>
 		<system>None</system>

@@ -32,7 +32,9 @@ public class Candidates {
     private final boolean[] suppressed;
     private final boolean verbose;
     private final LogService log;
-    public static final long S = 100;
+
+    // scale all coordinates by this value and divide later to get subpixel resolution
+    private static final long S = 100;
     
     public Candidates(RandomAccessibleInterval<FloatType> prob, RandomAccessibleInterval<FloatType> dist) {
         this(prob, dist, 0.4);

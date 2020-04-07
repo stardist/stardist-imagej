@@ -210,7 +210,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         checkForCSBDeep();
         if (!checkInputs()) return;
 
-        if (roiPosition == Opt.ROI_POSITION_AUTO)
+        if (roiPosition.equals(Opt.ROI_POSITION_AUTO))
             roiPositionActive = input.numDimensions() > 3 ? Opt.ROI_POSITION_HYPERSTACK : Opt.ROI_POSITION_STACK;
         else
             roiPositionActive = roiPosition;

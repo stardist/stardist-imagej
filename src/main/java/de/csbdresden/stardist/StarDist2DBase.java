@@ -98,16 +98,16 @@ public abstract class StarDist2DBase {
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
             if (framePosition > 0) setRoiPosition(polyRoi, framePosition, roiPosition);
-            roiManager.addRoi(polyRoi);
+            roiManager.add(polyRoi, -1);
             if (exportPointRois) {
                 final PointRoi pointRoi = polygons.getOriginRoi(i);
                 if (framePosition > 0) setRoiPosition(pointRoi, framePosition, roiPosition);
-                roiManager.addRoi(pointRoi);
+                roiManager.add(pointRoi, -1);
             }
             if (exportBboxRois) {
                 final Roi bboxRoi = polygons.getBboxRoi(i);
                 if (framePosition > 0) setRoiPosition(bboxRoi, framePosition, roiPosition);
-                roiManager.addRoi(bboxRoi);
+                roiManager.add(bboxRoi, -1);
             }
         }
 
