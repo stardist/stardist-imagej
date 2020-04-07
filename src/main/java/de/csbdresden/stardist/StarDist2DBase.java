@@ -163,7 +163,6 @@ public abstract class StarDist2DBase {
             return Utils.raiToDataset(dataset, Opt.LABEL_IMAGE, labelImg, axes);
         } else {
             return null;
-        }
-
+        }        
     }
 }

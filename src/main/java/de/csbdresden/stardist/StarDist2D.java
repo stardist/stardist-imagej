@@ -29,6 +29,7 @@ import org.scijava.widget.Button;
 import org.scijava.widget.ChoiceWidget;
 import org.scijava.widget.NumberWidget;
 
+import de.csbdresden.CommandFromMacro;
 import ij.IJ;
 import ij.ImagePlus;
 import net.imagej.Dataset;
@@ -47,7 +48,7 @@ import net.imglib2.view.Views;
         @Menu(label = MenuConstants.PLUGINS_LABEL, weight = MenuConstants.PLUGINS_WEIGHT, mnemonic = MenuConstants.PLUGINS_MNEMONIC),
         @Menu(label = "StarDist"),
         @Menu(label = "StarDist 2D", weight = 1)
-}) 
+})
 public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label="", visibility=ItemVisibility.MESSAGE, initializer="checkForCSBDeep")
@@ -317,6 +318,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                 label = (Dataset) futureNMS.get().getOutput("label");
             }
+            // call at the end of the run() method
+            CommandFromMacro.record(this, this.command);
+            
         } catch (InterruptedException | ExecutionException | IOException e) {
             e.printStackTrace();
         } finally {
@@ -384,6 +388,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
 //        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
         Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
         ij.ui().show(input);
+        
+//        Recorder recorder = new Recorder();
+//        recorder.show();
 
         final HashMap<String, Object> params = new HashMap<>();
         ij.command().run(StarDist2D.class, true, params);
