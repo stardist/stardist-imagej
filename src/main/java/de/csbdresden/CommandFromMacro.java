@@ -37,7 +37,7 @@ import net.imagej.ImageJ;
 import net.imglib2.RandomAccessibleInterval;
 
 
-@Plugin(type = Command.class, label = "CommandFromMacro", menuPath = "Plugins > StarDist > Other > CommandFromMacro")
+@Plugin(type = Command.class, label = "Command From Macro", menuPath = "Plugins > StarDist > Other > Command From Macro")
 public class CommandFromMacro implements Command {
 
     private static final List<ItemVisibility> SKIP_VISIBILITY = Arrays.asList(ItemVisibility.MESSAGE, ItemVisibility.INVISIBLE);
@@ -46,10 +46,10 @@ public class CommandFromMacro implements Command {
     private String command;
 
     @Parameter
-    private boolean process;
+    private String args;
 
     @Parameter
-    private String args;
+    private boolean process;
 
     // ---------
 
@@ -157,11 +157,10 @@ public class CommandFromMacro implements Command {
         if (Recorder.getInstance() == null)
             return false;
         final String recorded = Recorder.getCommand();
-        // System.out.println("RECORDED: " + recorded);
         final CommandInfo info = commandService.getCommand(command.getClass());
         // only proceed if this command is being recorded
         final String name = info.getMenuPath().getLeaf().getName();
-        // final String cmdName = info.getLabel();
+        // System.out.printf("RECORDED: %s, COMMAND: %s\n", recorded, name);
         if (recorded==null || !recorded.equals(name))
             return false;
         // prevent automatic recording
@@ -237,8 +236,8 @@ public class CommandFromMacro implements Command {
         argsStr = sb.toString();
         
         final String execName = commandService.getCommand(CommandFromMacro.class).getMenuPath().getLeaf().getName();
-        return String.format("run(\"%s\", \"command=[%s], process=[%s], args=[%s]\");\n",
-                execName, commandClass.getName(), String.valueOf(process), argsStr);
+        return String.format("run(\"%s\", \"command=[%s], args=[%s], process=[%s]\");\n",
+                execName, commandClass.getName(), argsStr, String.valueOf(process));
     }
 
 

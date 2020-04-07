@@ -317,10 +317,10 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                 label = (Dataset) futureNMS.get().getOutput("label");
-                
-                // call at the end of the run() method
-                CommandFromMacro.record(this, this.command);                
             }
+            // call at the end of the run() method
+            CommandFromMacro.record(this, this.command);
+            
         } catch (InterruptedException | ExecutionException | IOException e) {
             e.printStackTrace();
         } finally {
