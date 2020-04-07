@@ -3,6 +3,7 @@ package de.csbdresden.stardist;
 import static de.csbdresden.stardist.StarDist2DModel.MODELS;
 import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_HEAVY_AUGMENTATION;
 import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_PAPER;
+import static de.csbdresden.stardist.StarDist2DModel.MODEL_HE_HEAVY_AUGMENTATION;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,6 +70,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.MODEL,
                choices={MODEL_DSB2018_HEAVY_AUGMENTATION,
+                        MODEL_HE_HEAVY_AUGMENTATION,
                         MODEL_DSB2018_PAPER,
                         Opt.MODEL_FILE,
                         Opt.MODEL_URL}, style=ChoiceWidget.LIST_BOX_STYLE)
