@@ -122,6 +122,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.EXCLUDE_BNDRY, min="0", stepSize="1")
     private int excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+    
+    @Parameter(label=Opt.ROI_POSITION, choices={Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
+    private String roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);    
 
     @Parameter(label=Opt.VERBOSE)
     private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
@@ -152,6 +155,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
         nTiles = (int) Opt.getDefault(Opt.NUM_TILES);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+        roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
         showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
         showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
@@ -275,11 +279,12 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
                     final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                     final Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
-                    export(outputType, polygons, 1+t, numFrames);
+                    export(outputType, polygons, 1+t, numFrames, roiPosition);
 
                     status.showProgress(1+t, (int)numFrames);
                 }
-                label = labelImageToDataset(outputType);
+                label = labelImageToDataset(outputType);                
+                // if (roiManager != null) OverlayCommands.listRois(roiManager.getRoisAsArray());
 
             } else {
                 // note: the code below supports timelapse data too. differences to above:
@@ -359,7 +364,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Override
     protected ImagePlus createLabelImage() {
-        return IJ.createImage("Labeling", "16-bit black", (int)input.getWidth(), (int)input.getHeight(), 1, 1, (int)input.getFrames());
+        return IJ.createImage(Opt.LABEL_IMAGE, "16-bit black", (int)input.getWidth(), (int)input.getHeight(), 1, 1, (int)input.getFrames());
     }
     
 

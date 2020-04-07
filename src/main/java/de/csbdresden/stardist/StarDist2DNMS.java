@@ -62,6 +62,9 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.EXCLUDE_BNDRY, min="0", stepSize="1")
     private int excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+    
+    @Parameter(label=Opt.ROI_POSITION, choices={Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
+    private String roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
 
     @Parameter(label=Opt.VERBOSE)
     private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
@@ -76,6 +79,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         nmsThresh = (double) Opt.getDefault(Opt.NMS_THRESH);
         outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+        roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
     }
 
@@ -102,14 +106,14 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
                 polygons.nms(nmsThresh);
                 if (verbose)
                     log.info(String.format("frame %03d: %d polygon candidates, %d remain after non-maximum suppression", t, polygons.getSorted().size(), polygons.getWinner().size()));
-                export(outputType, polygons, 1+t, numFrames);
+                export(outputType, polygons, 1+t, numFrames, roiPosition);
             }
         } else {
             final Candidates polygons = new Candidates(probRAI, distRAI, probThresh, excludeBoundary, verbose ? log : null);
             polygons.nms(nmsThresh);
             if (verbose)
                 log.info(String.format("%d polygon candidates, %d remain after non-maximum suppression", polygons.getSorted().size(), polygons.getWinner().size()));
-            export(outputType, polygons, 0, 0);
+            export(outputType, polygons, 0, 0, roiPosition);
         }
 
         label = labelImageToDataset(outputType);
@@ -167,7 +171,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Override
     protected ImagePlus createLabelImage() {
-        return IJ.createImage("Labeling", "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
+        return IJ.createImage(Opt.LABEL_IMAGE, "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
     }
 
 
