@@ -29,6 +29,10 @@ public class Opt {
     
     static final String NUM_TILES = "Number of Tiles";
     static final String EXCLUDE_BNDRY = "Boundary Exclusion";
+    static final String ROI_POSITION = "ROI Position";
+    static final String ROI_POSITION_AUTO = "Automatic";
+    static final String ROI_POSITION_STACK = "Stack";
+    static final String ROI_POSITION_HYPERSTACK = "Hyperstack";
     static final String VERBOSE = "Verbose";
     static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
     static final String SHOW_PROB_DIST = "Show CNN Output";
@@ -48,6 +52,7 @@ public class Opt {
         DEFAULTS.put(OUTPUT_TYPE, OUTPUT_BOTH);
         DEFAULTS.put(NUM_TILES, 1);
         DEFAULTS.put(EXCLUDE_BNDRY, 2);
+        DEFAULTS.put(ROI_POSITION, ROI_POSITION_AUTO);
         DEFAULTS.put(VERBOSE, false);
         DEFAULTS.put(CSBDEEP_PROGRESS_WINDOW, false);
         DEFAULTS.put(SHOW_PROB_DIST, false);

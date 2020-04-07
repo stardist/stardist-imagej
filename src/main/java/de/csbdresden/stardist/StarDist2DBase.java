@@ -24,7 +24,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 
 public abstract class StarDist2DBase {
-    
+
     @Parameter
     protected LogService log;
 
@@ -36,12 +36,12 @@ public abstract class StarDist2DBase {
 
     @Parameter
     protected DatasetService dataset;
-    
+
     @Parameter
     protected StatusService status;
-    
+
     // ---------
-    
+
     protected boolean exportPointRois = false;
     protected boolean exportBboxRois = false;
 
@@ -50,77 +50,85 @@ public abstract class StarDist2DBase {
     protected int labelId = 0;
     protected long labelCount = 0;
     protected static final int MAX_LABEL_ID = 65535;
-    
+
     // ---------
-    
+
     protected URL getResource(final String name) {
         return StarDist2DBase.class.getClassLoader().getResource(name);
-    }        
-    
+    }
+
     protected boolean showError(String msg) {
         ui.showDialog(msg, MessageType.ERROR_MESSAGE);
         // log.error(msg);
         return false;
     }
-    
+
     // ---------
-    
-    protected void export(String outputType, Candidates polygons, int framePosition) {
+
+    protected void export(String outputType, Candidates polygons, int framePosition, long numFrames, String roiPosition) {
         switch (outputType) {
         case Opt.OUTPUT_ROI_MANAGER:
-            exportROIs(polygons, framePosition);
+            exportROIs(polygons, framePosition, numFrames, roiPosition);
             break;
         case Opt.OUTPUT_LABEL_IMAGE:
             exportLabelImage(polygons, framePosition);
             break;
         case Opt.OUTPUT_BOTH:
-            exportROIs(polygons, framePosition);
+            exportROIs(polygons, framePosition, numFrames, roiPosition);
             exportLabelImage(polygons, framePosition);
             break;
         case Opt.OUTPUT_POLYGONS:
             exportPolygons(polygons);
             break;
         default:
-            showError(String.format("Unknown output type \"%s\"", outputType));
+            showError(String.format("Invalid %s \"%s\"", Opt.OUTPUT_TYPE, outputType));
         }
     }
-    
-    protected void exportROIs(Candidates polygons, int framePosition) {
+
+    protected void exportROIs(Candidates polygons, int framePosition, long numFrames, String roiPosition) {
         if (roiManager == null) {
             roiManager = RoiManager.getRoiManager();
             roiManager.reset(); // clear all rois
+            // https://github.com/mpicbg-csbd/stardist-imagej/pull/5:
+            // when setting the RoiManager to invisible, the position of the ROI will be properly saved
+            // -> the issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
+            roiManager.setVisible(false);            
         }
-
-        // Setting the RoiManager to invisible, the position of the ROI will be properly saved.
-        // The issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
-        roiManager.setVisible(false);
 
         for (final int i : polygons.getWinner()) {
-            final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(i));
-            if (framePosition > 0) polyRoi.setPosition(1, 1, framePosition);
-            //if (framePosition > 0) polyRoi.setPosition(framePosition);
-            roiManager.addRoi(polyRoi);
+            final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
+            if (framePosition > 0) setRoiPosition(polyRoi, framePosition, roiPosition);
+            roiManager.add(polyRoi, -1);
             if (exportPointRois) {
-                final Point2D o = polygons.getOrigin(i);
-                final PointRoi pointRoi = new PointRoi(o.x, o.y);
-                if (framePosition > 0) pointRoi.setPosition(1, 1, framePosition);
-                //if (framePosition > 0) pointRoi.setPosition(framePosition);
-                roiManager.addRoi(pointRoi);
+                final PointRoi pointRoi = polygons.getOriginRoi(i);
+                if (framePosition > 0) setRoiPosition(pointRoi, framePosition, roiPosition);
+                roiManager.add(pointRoi, -1);
             }
             if (exportBboxRois) {
-                final Box2D bbox = polygons.getBbox(i);
-                final Roi bboxRoi = new Roi(bbox.xmin, bbox.ymin, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin);
-                if (framePosition > 0) bboxRoi.setPosition(1, 1, framePosition);
-                //if (framePosition > 0) bboxRoi.setPosition(framePosition);
-                roiManager.addRoi(bboxRoi);
+                final Roi bboxRoi = polygons.getBboxRoi(i);
+                if (framePosition > 0) setRoiPosition(bboxRoi, framePosition, roiPosition);
+                roiManager.add(bboxRoi, -1);
             }
         }
 
-        //Setting the RoiManager back to visible at the end of the processing
-        roiManager.setVisible(true);
-
+        // make the RoiManager visible after adding the ROIs
+        if (framePosition == 0 || framePosition == numFrames)
+            roiManager.setVisible(true);
     }
-   
+    
+    protected void setRoiPosition(Roi roi, int framePosition, String roiPosition) {
+        switch (roiPosition) {
+        case Opt.ROI_POSITION_STACK:
+            roi.setPosition(framePosition);
+            break;
+        case Opt.ROI_POSITION_HYPERSTACK:
+            roi.setPosition(1, 1, framePosition);
+            break;
+        default:
+            showError(String.format("Invalid %s \"%s\"", Opt.ROI_POSITION, roiPosition));
+        }
+    }
+
     protected void exportLabelImage(Candidates polygons, int framePosition) {
         if (labelImage == null)
             labelImage = createLabelImage();
@@ -131,18 +139,18 @@ public abstract class StarDist2DBase {
         final int numWinners = winner.size();
         // winners are ordered by score -> draw from last to first to give priority to higher scores in case of overlaps
         for (int i = numWinners-1; i >= 0; i--) {
-            final PolygonRoi polyRoi = Utils.toPolygonRoi(polygons.getPolygon(winner.get(i)));
+            final PolygonRoi polyRoi = polygons.getPolygonRoi(winner.get(i));
             ip.setColor(1 + ((labelId + i) % MAX_LABEL_ID));
             ip.fill(polyRoi);
         }
         labelCount += numWinners;
         labelId = (labelId + numWinners) % MAX_LABEL_ID;
-    }    
-    
-    abstract protected void exportPolygons(Candidates polygons);    
-    
+    }
+
+    abstract protected void exportPolygons(Candidates polygons);
+
     abstract protected ImagePlus createLabelImage();
-    
+
     protected Dataset labelImageToDataset(String outputType) {
         if (outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH)) {
             if (labelCount > MAX_LABEL_ID) {

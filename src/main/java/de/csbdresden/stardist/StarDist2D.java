@@ -3,6 +3,7 @@ package de.csbdresden.stardist;
 import static de.csbdresden.stardist.StarDist2DModel.MODELS;
 import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_HEAVY_AUGMENTATION;
 import static de.csbdresden.stardist.StarDist2DModel.MODEL_DSB2018_PAPER;
+import static de.csbdresden.stardist.StarDist2DModel.MODEL_HE_HEAVY_AUGMENTATION;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,7 +55,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
     private final String msgTitle = "<html>" +
             "<table><tr valign='top'><td>" +
             "<h2>Object Detection with Star-convex Shapes</h2>" +
-            "<a href='https://github.com/mpicbg-csbd/stardist'>https://github.com/mpicbg-csbd/stardist</a>" +
+            "<a href='https://imagej.net/StarDist'>https://imagej.net/StarDist</a>" +
             "<br/><br/><small>Please cite our paper if StarDist was helpful for your research. Thanks!</small>" +
             "</td><td>&nbsp;&nbsp;<img src='"+getResource("images/logo.png")+"' width='100' height='100'></img><td>" +
             "</tr></table>" +
@@ -70,6 +71,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.MODEL,
                choices={MODEL_DSB2018_HEAVY_AUGMENTATION,
+                        MODEL_HE_HEAVY_AUGMENTATION,
                         MODEL_DSB2018_PAPER,
                         Opt.MODEL_FILE,
                         Opt.MODEL_URL}, style=ChoiceWidget.LIST_BOX_STYLE)
@@ -83,7 +85,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.PERCENTILE_HIGH, stepSize="0.1", min="0", max="100", style=NumberWidget.SLIDER_STYLE, callback="percentileTopChanged")
     private double percentileTop = (double) Opt.getDefault(Opt.PERCENTILE_HIGH);
-    
+
     @Parameter(label=Opt.PROB_IMAGE, type=ItemIO.OUTPUT)
     private Dataset prob;
 
@@ -123,16 +125,20 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.EXCLUDE_BNDRY, min="0", stepSize="1")
     private int excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+    
+    @Parameter(label=Opt.ROI_POSITION, choices={Opt.ROI_POSITION_AUTO, Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
+    private String roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
+    private String roiPositionActive = null;
 
     @Parameter(label=Opt.VERBOSE)
     private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
-    
+
     @Parameter(label=Opt.CSBDEEP_PROGRESS_WINDOW)
     private boolean showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
-    
+
     @Parameter(label=Opt.SHOW_PROB_DIST)
     private boolean showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
-    
+
     // TODO: values for block multiple and overlap
 
     @Parameter(label=Opt.SET_THRESHOLDS, callback="setThresholds")
@@ -153,6 +159,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
         nTiles = (int) Opt.getDefault(Opt.NUM_TILES);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+        roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
         showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
         showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
@@ -165,7 +172,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
     private void percentileTopChanged() {
         percentileBottom = Math.min(percentileBottom, percentileTop);
     }
-    
+
     private void setThresholds() {
         switch (modelChoice) {
         case Opt.MODEL_FILE:
@@ -203,7 +210,12 @@ public class StarDist2D extends StarDist2DBase implements Command {
     public void run() {
         checkForCSBDeep();
         if (!checkInputs()) return;
-        
+
+        if (roiPosition.equals(Opt.ROI_POSITION_AUTO))
+            roiPositionActive = input.numDimensions() > 3 ? Opt.ROI_POSITION_HYPERSTACK : Opt.ROI_POSITION_STACK;
+        else
+            roiPositionActive = roiPosition;
+
         File tmpModelFile = null;
         try {
             final HashMap<String, Object> paramsCNN = new HashMap<>();
@@ -238,13 +250,14 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 paramsCNN.put("blockMultiple", pretrainedModel.sizeDivBy);
                 paramsCNN.put("overlap", pretrainedModel.tileOverlap);
             }
-            
+
             final HashMap<String, Object> paramsNMS = new HashMap<>();
             paramsNMS.put("probThresh", probThresh);
             paramsNMS.put("nmsThresh", nmsThresh);
             paramsNMS.put("excludeBoundary", excludeBoundary);
-            paramsNMS.put("verbose", verbose);            
-            
+            paramsNMS.put("roiPosition", roiPositionActive);
+            paramsNMS.put("verbose", verbose);
+
             final LinkedHashSet<AxisType> inputAxes = Utils.orderedAxesSet(input);
             final boolean isTimelapse = inputAxes.contains(Axes.TIME);
 
@@ -276,11 +289,12 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
                     final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                     final Candidates polygons = (Candidates) futureNMS.get().getOutput("polygons");
-                    export(outputType, polygons, 1+t);
-                    
+                    export(outputType, polygons, 1+t, numFrames, roiPositionActive);
+
                     status.showProgress(1+t, (int)numFrames);
                 }
-                label = labelImageToDataset(outputType);
+                label = labelImageToDataset(outputType);                
+                // if (roiManager != null) OverlayCommands.listRois(roiManager.getRoisAsArray());
 
             } else {
                 // note: the code below supports timelapse data too. differences to above:
@@ -289,7 +303,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 //       - allows showing prob and dist easily
                 final Future<CommandModule> futureCNN = command.run(de.csbdresden.csbdeep.commands.GenericNetwork.class, false, paramsCNN);
                 final Dataset prediction = (Dataset) futureCNN.get().getOutput("output");
-                
+
                 final Pair<Dataset, Dataset> probAndDist = splitPrediction(prediction);
                 final Dataset probDS = probAndDist.getA();
                 final Dataset distDS = probAndDist.getB();
@@ -318,7 +332,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
             }
         }
     }
-    
+
     // this function is very cumbersome... is there a better way to do this?
     private Pair<Dataset, Dataset> splitPrediction(final Dataset prediction) {
         final RandomAccessibleInterval<FloatType> predictionRAI = (RandomAccessibleInterval<FloatType>) prediction.getImgPlus();
@@ -331,7 +345,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
         final long[] predSize = predAxes.stream().mapToLong(axis -> {
             return axis == Axes.CHANNEL ? prediction.dimension(axis)-1 : prediction.dimension(axis);
         }).toArray();
-        
+
         final RandomAccessibleInterval<FloatType> probRAI = Views.hyperSlice(predictionRAI, predChannelDim, 0);
         final RandomAccessibleInterval<FloatType> distRAI = Views.offsetInterval(predictionRAI, predStart, predSize);
 
@@ -349,23 +363,23 @@ public class StarDist2D extends StarDist2DBase implements Command {
                (input.numDimensions() == 3 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL))) ||
                (input.numDimensions() == 4 && axes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL, Axes.TIME))) ))
             return showError("Input must be a 2D image or timelapse (with or without channels).");
-        
-        if (!( modelChoice.equals(Opt.MODEL_FILE) || modelChoice.equals(Opt.MODEL_URL) || MODELS.containsKey(modelChoice) )) 
+
+        if (!( modelChoice.equals(Opt.MODEL_FILE) || modelChoice.equals(Opt.MODEL_URL) || MODELS.containsKey(modelChoice) ))
             return showError(String.format("Unsupported Model \"%s\".", modelChoice));
-        
+
         return true;
     }
-    
-    
+
+
     @Override
     protected void exportPolygons(Candidates polygons) {}
-    
+
 
     @Override
     protected ImagePlus createLabelImage() {
-        return IJ.createImage("Labeling", "16-bit black", (int)input.getWidth(), (int)input.getHeight(), 1, 1, (int)input.getFrames());
+        return IJ.createImage(Opt.LABEL_IMAGE, "16-bit black", (int)input.getWidth(), (int)input.getHeight(), 1, 1, (int)input.getFrames());
     }
-    
+
 
     public static void main(final String... args) throws Exception {
         final ImageJ ij = new ImageJ();

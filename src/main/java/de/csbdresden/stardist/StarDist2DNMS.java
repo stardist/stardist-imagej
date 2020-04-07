@@ -32,9 +32,9 @@ import net.imglib2.view.Views;
         @Menu(label = "StarDist"),
         @Menu(label = "Other"),
         @Menu(label = "StarDist 2D NMS (postprocessing only)", weight = 2)
-}) 
+})
 public class StarDist2DNMS extends StarDist2DBase implements Command {
-    
+
     @Parameter(label=Opt.PROB_IMAGE)
     private Dataset prob;
 
@@ -55,7 +55,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.OUTPUT_TYPE, choices={Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
     private String outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
-    
+
     // ---------
 
     @Parameter(visibility=ItemVisibility.MESSAGE)
@@ -63,13 +63,16 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.EXCLUDE_BNDRY, min="0", stepSize="1")
     private int excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+    
+    @Parameter(label=Opt.ROI_POSITION, choices={Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK}, style=ChoiceWidget.RADIO_BUTTON_HORIZONTAL_STYLE)
+    private String roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
 
     @Parameter(label=Opt.VERBOSE)
     private boolean verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
 
     @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
     private Button restoreDefaults;
-    
+
     // ---------
 
     private void restoreDefaults() {
@@ -77,6 +80,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         nmsThresh = (double) Opt.getDefault(Opt.NMS_THRESH);
         outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
+        roiPosition = (String) Opt.ROI_POSITION_STACK;
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
     }
 
@@ -88,7 +92,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
         final RandomAccessibleInterval<FloatType> probRAI = (RandomAccessibleInterval<FloatType>) prob.getImgPlus();
         final RandomAccessibleInterval<FloatType> distRAI = (RandomAccessibleInterval<FloatType>) dist.getImgPlus();
-        
+
         final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
         final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
         final boolean isTimelapse = probAxes.contains(Axes.TIME);
@@ -103,78 +107,81 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
                 polygons.nms(nmsThresh);
                 if (verbose)
                     log.info(String.format("frame %03d: %d polygon candidates, %d remain after non-maximum suppression", t, polygons.getSorted().size(), polygons.getWinner().size()));
-                export(outputType, polygons, 1+t);
+                export(outputType, polygons, 1+t, numFrames, roiPosition);
             }
         } else {
             final Candidates polygons = new Candidates(probRAI, distRAI, probThresh, excludeBoundary, verbose ? log : null);
             polygons.nms(nmsThresh);
             if (verbose)
                 log.info(String.format("%d polygon candidates, %d remain after non-maximum suppression", polygons.getSorted().size(), polygons.getWinner().size()));
-            export(outputType, polygons, 0);
+            export(outputType, polygons, 0, 0, roiPosition);
         }
-        
+
         label = labelImageToDataset(outputType);
 
         // call at the end of the run() method
         CommandFromMacro.record(this, this.command);
     }
-    
+
 
     private boolean checkInputs() {
         final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
         final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
-        
+
         if (!( (prob.numDimensions() == 2 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y))) ||
                (prob.numDimensions() == 3 && probAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.TIME))) ))
-            return showError("Probability/Score must be a 2D image or timelapse.");
+            return showError(String.format("%s must be a 2D image or timelapse.", Opt.PROB_IMAGE));
 
         if (!( (dist.numDimensions() == 3 && distAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL))            && dist.getChannels() >= 3) ||
                (dist.numDimensions() == 4 && distAxes.containsAll(Arrays.asList(Axes.X, Axes.Y, Axes.CHANNEL, Axes.TIME)) && dist.getChannels() >= 3) ))
-            return showError("Distance must be a 2D image or timelapse with at least three channels.");
+            return showError(String.format("%s must be a 2D image or timelapse with at least three channels.", Opt.DIST_IMAGE));
 
         if ((prob.numDimensions() + 1) != dist.numDimensions())
-            return showError("Axes of Probability/Score and Distance not compatible.");
+            return showError(String.format("Axes of %s and %s not compatible.", Opt.PROB_IMAGE, Opt.DIST_IMAGE));
 
         if (prob.getWidth() != dist.getWidth() || prob.getHeight() != dist.getHeight())
-            return showError("Width or height of Probability/Score and Distance differ.");
+            return showError(String.format("Width or height of %s and %s differ.", Opt.PROB_IMAGE, Opt.DIST_IMAGE));
 
         if (prob.getFrames() != dist.getFrames())
-            return showError("Number of frames of Probability/Score and Distance differ.");
-        
+            return showError(String.format("Number of frames of %s and %s differ.", Opt.PROB_IMAGE, Opt.DIST_IMAGE));
+
         final AxisType[] probAxesArray = probAxes.stream().toArray(AxisType[]::new);
         final AxisType[] distAxesArray = distAxes.stream().toArray(AxisType[]::new);
         if (!( probAxesArray[0] == Axes.X && probAxesArray[1] == Axes.Y ))
-            return showError("First two axes of Probability/Score must be a X and Y.");
+            return showError(String.format("First two axes of %s must be a X and Y.", Opt.PROB_IMAGE));
         if (!( distAxesArray[0] == Axes.X && distAxesArray[1] == Axes.Y ))
-            return showError("First two axes of Distance must be a X and Y.");        
+            return showError(String.format("First two axes of %s must be a X and Y.", Opt.DIST_IMAGE));
 
         if (!(0 <= nmsThresh && nmsThresh <= 1))
-            return showError("NMS Threshold must be between 0 and 1.");
+            return showError(String.format("%s must be between 0 and 1.", Opt.NMS_THRESH));
 
         if (excludeBoundary < 0)
-            return showError("Boundary Exclusion must be >= 0");
+            return showError(String.format("%s must be >= 0", Opt.EXCLUDE_BNDRY));
 
         if (!(outputType.equals(Opt.OUTPUT_ROI_MANAGER) || outputType.equals(Opt.OUTPUT_LABEL_IMAGE) || outputType.equals(Opt.OUTPUT_BOTH) || outputType.equals(Opt.OUTPUT_POLYGONS)))
-            return showError(String.format("Output Type must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH));
-        
+            return showError(String.format("%s must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.OUTPUT_TYPE, Opt.OUTPUT_ROI_MANAGER, Opt.OUTPUT_LABEL_IMAGE, Opt.OUTPUT_BOTH));
+
         if (outputType.equals(Opt.OUTPUT_POLYGONS) && probAxes.contains(Axes.TIME))
-            return showError(String.format("Timelapse not supported for output type \"%s\"", Opt.OUTPUT_POLYGONS));        
+            return showError(String.format("Timelapse not supported for output type \"%s\"", Opt.OUTPUT_POLYGONS));
+
+        if (!(roiPosition.equals(Opt.ROI_POSITION_STACK) || roiPosition.equals(Opt.ROI_POSITION_HYPERSTACK)))
+            return showError(String.format("%s must be one of {\"%s\", \"%s\"}.", Opt.ROI_POSITION, Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK));        
         
         return true;
     }
 
-    
+
     @Override
     protected void exportPolygons(Candidates polygons) {
         this.polygons = polygons;
     }
-    
+
     @Override
     protected ImagePlus createLabelImage() {
-        return IJ.createImage("Labeling", "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
+        return IJ.createImage(Opt.LABEL_IMAGE, "16-bit black", (int)prob.getWidth(), (int)prob.getHeight(), 1, 1, (int)prob.getFrames());
     }
 
-    
+
     public static void main(final String... args) throws Exception {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
