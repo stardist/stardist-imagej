@@ -71,7 +71,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
 
     @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
     private Button restoreDefaults;
-    
+
     // ---------
 
     private void restoreDefaults() {
@@ -79,7 +79,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         nmsThresh = (double) Opt.getDefault(Opt.NMS_THRESH);
         outputType = (String) Opt.getDefault(Opt.OUTPUT_TYPE);
         excludeBoundary = (int) Opt.getDefault(Opt.EXCLUDE_BNDRY);
-        roiPosition = (String) Opt.getDefault(Opt.ROI_POSITION);
+        roiPosition = (String) Opt.ROI_POSITION_STACK;
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
     }
 
@@ -160,7 +160,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         if (outputType.equals(Opt.OUTPUT_POLYGONS) && probAxes.contains(Axes.TIME))
             return showError(String.format("Timelapse not supported for output type \"%s\"", Opt.OUTPUT_POLYGONS));
 
-        if (!(roiPosition.equals(Opt.ROI_POSITION_STACK) || roiPosition.equals(Opt.ROI_POSITION_STACK)))
+        if (!(roiPosition.equals(Opt.ROI_POSITION_STACK) || roiPosition.equals(Opt.ROI_POSITION_HYPERSTACK)))
             return showError(String.format("%s must be one of {\"%s\", \"%s\"}.", Opt.ROI_POSITION, Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK));        
         
         return true;
