@@ -79,6 +79,11 @@
 			<url>https://github.com/romainGuiet</url>
 			<roles><role>developer</role></roles>
 		</contributor>
+		<contributor>
+			<name>Robert Haase</name>
+			<url>https://github.com/haesleinhuepf</url>
+			<roles><role>developer</role></roles>
+		</contributor>
 	</contributors>
 
 	<mailingLists>
@@ -144,6 +149,7 @@
 			<artifactId>csbdeep</artifactId>
 			<version>0.3.5-SNAPSHOT</version>
 		</dependency>
+		<!-- Utils -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>

@@ -367,6 +367,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
         if (!( modelChoice.equals(Opt.MODEL_FILE) || modelChoice.equals(Opt.MODEL_URL) || MODELS.containsKey(modelChoice) ))
             return showError(String.format("Unsupported Model \"%s\".", modelChoice));
 
+        if (!(roiPosition.equals(Opt.ROI_POSITION_AUTO) || roiPosition.equals(Opt.ROI_POSITION_STACK) || roiPosition.equals(Opt.ROI_POSITION_HYPERSTACK)))
+            return showError(String.format("%s must be one of {\"%s\", \"%s\", \"%s\"}.", Opt.ROI_POSITION, Opt.ROI_POSITION_AUTO, Opt.ROI_POSITION_STACK, Opt.ROI_POSITION_HYPERSTACK));        
+
         return true;
     }
 
@@ -385,8 +388,9 @@ public class StarDist2D extends StarDist2DBase implements Command {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
 
-//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
         Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("patho_hyperstack.tif").getFile());
         ij.ui().show(input);
         
 //        Recorder recorder = new Recorder();
