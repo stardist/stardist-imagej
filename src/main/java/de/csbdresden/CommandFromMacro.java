@@ -12,7 +12,6 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.ClassUtils;
-import org.apache.commons.text.StringEscapeUtils;
 import org.scijava.ItemVisibility;
 import org.scijava.Named;
 import org.scijava.command.Command;
@@ -27,6 +26,7 @@ import org.scijava.service.Service;
 import org.scijava.ui.UIService;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import de.csbdresden.stardist.StarDist2D;
 import ij.ImagePlus;
@@ -41,6 +41,7 @@ import net.imglib2.RandomAccessibleInterval;
 public class CommandFromMacro implements Command {
 
     private static final List<ItemVisibility> SKIP_VISIBILITY = Arrays.asList(ItemVisibility.MESSAGE, ItemVisibility.INVISIBLE);
+    private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     @Parameter
     private String command;
@@ -87,7 +88,7 @@ public class CommandFromMacro implements Command {
         final Map<String,Object> params = new LinkedHashMap<>();
         final List<String> outputs = new ArrayList<>();
 
-        Map<?,?> argsMap = new Gson().fromJson("{"+args+"}", Map.class);
+        Map<?,?> argsMap = GSON.fromJson("{"+args+"}", Map.class);
         // System.out.println(argsMap);
 
         for (Object keyO : argsMap.keySet()) {
@@ -217,27 +218,19 @@ public class CommandFromMacro implements Command {
             }
         }
 
-        // convert to json and remove curly braces
-        String argsStr = new Gson().toJson(args);
-        argsStr = argsStr.substring(1, argsStr.length()-1);
-        // to make the macro string look nicer (otherwise have to escape all double quotes):
-        // replace double quotes around json keys/values with single quotes
+        // manually build json dict string, replacing double quotes around
+        // keys/values with single quotes to make the macro string look nicer
         // technically not correct json, but can be parsed by Gson
-        final StringBuilder sb = new StringBuilder(argsStr);
-        int p = 0;
+        final StringBuilder sb = new StringBuilder();
         for (Entry<String, String> arg: args.entrySet()) {
-            final int k = StringEscapeUtils.escapeJava(arg.getKey()).length();
-            final int v = StringEscapeUtils.escapeJava(arg.getValue()).length();
-            sb.replace(p, p+1, "'"); p+=1+k;
-            sb.replace(p, p+1, "'"); p+=2;
-            sb.replace(p, p+1, "'"); p+=1+v;
-            sb.replace(p, p+1, "'"); p+=2;            
+            if (sb.length() > 0) sb.append(", ");
+            String k = GSON.toJson(arg.getKey());   k = k.substring(1, k.length()-1);
+            String v = GSON.toJson(arg.getValue()); v = v.substring(1, v.length()-1);
+            sb.append(String.format("'%s':'%s'", k, v));
         }
-        argsStr = sb.toString();
-        
         final String execName = commandService.getCommand(CommandFromMacro.class).getMenuPath().getLeaf().getName();
         return String.format("run(\"%s\", \"command=[%s], args=[%s], process=[%s]\");\n",
-                execName, commandClass.getName(), argsStr, String.valueOf(process));
+                execName, commandClass.getName(), sb.toString(), String.valueOf(process));
     }
 
 
