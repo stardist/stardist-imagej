@@ -122,7 +122,7 @@ public abstract class StarDist2DBase {
             roi.setPosition(framePosition);
             break;
         case Opt.ROI_POSITION_HYPERSTACK:
-            roi.setPosition(1, 1, framePosition);
+            roi.setPosition(0, 0, framePosition);
             break;
         default:
             showError(String.format("Invalid %s \"%s\"", Opt.ROI_POSITION, roiPosition));
