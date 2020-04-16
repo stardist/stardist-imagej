@@ -20,6 +20,7 @@ import net.imagej.Dataset;
 import net.imagej.DatasetService;
 import net.imagej.axis.Axes;
 import net.imagej.axis.AxisType;
+import net.imagej.lut.LUTService;
 import net.imglib2.img.Img;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 
@@ -39,6 +40,9 @@ public abstract class StarDist2DBase {
 
     @Parameter
     protected StatusService status;
+    
+    @Parameter
+    protected LUTService lut;
 
     // ---------
 
@@ -156,11 +160,22 @@ public abstract class StarDist2DBase {
             if (labelCount > MAX_LABEL_ID) {
                 log.error(String.format("Found more than %d segments -> label image does contain some repetitive IDs.\n(\"%s\" output instead does not have this problem).", MAX_LABEL_ID, Opt.OUTPUT_ROI_MANAGER));
             }
-            // IJ.run(labelImage, "glasbey inverted", "");
             final boolean isTimelapse = labelImage.getNFrames() > 1;
             final Img labelImg = (Img) ImageJFunctions.wrap(labelImage);
             final AxisType[] axes = isTimelapse ? new AxisType[]{Axes.X, Axes.Y, Axes.TIME} : new AxisType[]{Axes.X, Axes.Y};
-            return Utils.raiToDataset(dataset, Opt.LABEL_IMAGE, labelImg, axes);
+            final Dataset ds = Utils.raiToDataset(dataset, Opt.LABEL_IMAGE, labelImg, axes);
+            // set LUT 
+            try {
+                ds.initializeColorTables(1);                
+                // ds.setColorTable(lut.loadLUT(lut.findLUTs().get("StarDist.lut")), 0);
+                ds.setColorTable(lut.loadLUT(getResource("luts/StarDist.lut")), 0);
+                ds.setChannelMinimum(0, 0);
+                ds.setChannelMaximum(0, Math.min(labelCount, MAX_LABEL_ID));
+            } catch (Exception e) {
+                log.warn("Couldn't set LUT for label image.");
+                e.printStackTrace();
+            }
+            return ds;
         } else {
             return null;
         }        
