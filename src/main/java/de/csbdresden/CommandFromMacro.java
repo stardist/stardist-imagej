@@ -226,6 +226,8 @@ public class CommandFromMacro implements Command {
             if (sb.length() > 0) sb.append(", ");
             String k = GSON.toJson(arg.getKey());   k = k.substring(1, k.length()-1);
             String v = GSON.toJson(arg.getValue()); v = v.substring(1, v.length()-1);
+            // double escape backslashes, otherwise imagej will unescape them and lead to a json parse error 
+            if (v.contains("\\\\")) v = v.replaceAll("\\\\", "\\\\\\\\");
             sb.append(String.format("'%s':'%s'", k, v));
         }
         final String execName = commandService.getCommand(CommandFromMacro.class).getMenuPath().getLeaf().getName();
