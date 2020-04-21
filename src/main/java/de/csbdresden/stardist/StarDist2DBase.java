@@ -90,34 +90,28 @@ public abstract class StarDist2DBase {
     }
 
     protected void exportROIs(Candidates polygons, int framePosition, long numFrames, String roiPosition) {
+        final boolean isTimelapse = framePosition > 0;
         if (roiManager == null) {
             roiManager = RoiManager.getRoiManager();
             roiManager.reset(); // clear all rois
-            // https://github.com/mpicbg-csbd/stardist-imagej/pull/5:
-            // when setting the RoiManager to invisible, the position of the ROI will be properly saved
-            // -> the issue is in RoiManager.addRoi(), https://github.com/imagej/imagej1/blob/c4950ee1f19a25828e5ac915ef3f74e5aa13a6e2/ij/plugin/frame/RoiManager.java#L419
-            roiManager.setVisible(false);            
         }
 
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
-            if (framePosition > 0) setRoiPosition(polyRoi, framePosition, roiPosition);
+            if (isTimelapse) setRoiPosition(polyRoi, framePosition, roiPosition);
             roiManager.add(polyRoi, -1);
             if (exportPointRois) {
                 final PointRoi pointRoi = polygons.getOriginRoi(i);
-                if (framePosition > 0) setRoiPosition(pointRoi, framePosition, roiPosition);
+                if (isTimelapse) setRoiPosition(pointRoi, framePosition, roiPosition);
                 roiManager.add(pointRoi, -1);
             }
             if (exportBboxRois) {
                 final Roi bboxRoi = polygons.getBboxRoi(i);
-                if (framePosition > 0) setRoiPosition(bboxRoi, framePosition, roiPosition);
+                if (isTimelapse) setRoiPosition(bboxRoi, framePosition, roiPosition);
                 roiManager.add(bboxRoi, -1);
             }
         }
-
-        // make the RoiManager visible after adding the ROIs
-        if (framePosition == 0 || framePosition == numFrames)
-            roiManager.setVisible(true);
+        if (roiManager.isVisible()) roiManager.repaint();
     }
     
     protected void setRoiPosition(Roi roi, int framePosition, String roiPosition) {
