@@ -3,7 +3,6 @@ package de.csbdresden;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,18 +11,22 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.ClassUtils;
+import org.scijava.Context;
 import org.scijava.ItemVisibility;
 import org.scijava.Named;
 import org.scijava.command.Command;
 import org.scijava.command.CommandInfo;
 import org.scijava.command.CommandModule;
 import org.scijava.command.CommandService;
+import org.scijava.display.DisplayPostprocessor;
 import org.scijava.log.LogService;
+import org.scijava.module.Module;
+import org.scijava.module.ModuleException;
+import org.scijava.module.ModuleInfo;
 import org.scijava.module.ModuleItem;
 import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.service.Service;
-import org.scijava.ui.UIService;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,14 +58,14 @@ public class CommandFromMacro implements Command {
     // ---------
 
     @Parameter
-    private UIService ui;
-
-    @Parameter
     private CommandService cmd;
 
     @Parameter
     private LogService log;
 
+    @Parameter
+    private Context context;
+    
     // ---------
 
     @Override
@@ -86,7 +89,6 @@ public class CommandFromMacro implements Command {
         }
 
         final Map<String,Object> params = new LinkedHashMap<>();
-        final List<String> outputs = new ArrayList<>();
 
         Map<?,?> argsMap = GSON.fromJson("{"+args+"}", Map.class);
         // System.out.println(argsMap);
@@ -105,20 +107,26 @@ public class CommandFromMacro implements Command {
             } else {
                 item = info.getOutput(key);
                 if (item != null) {
-                    outputs.add(key);
+                    log.info(String.format("No need to specify output argument \"%s\".", key));
                 } else {
-                    log.warn(String.format("Ignoring argument \"%s\" since neither an input or output of this command.", key));
+                    log.warn(String.format("Ignoring argument \"%s\" since not an input.", key));
                 }
             }
         }
-
+        
         try {
+            // run command with parsed parameters
             final CommandModule result = cmd.run(command, process, params).get();
-            for (String name : outputs) {
-                final Object output = result.getOutput(name);
-                if (output != null) ui.show(output);
-            }
-        } catch (InterruptedException | ExecutionException e) {
+
+            // show outputs
+            final Module module = ((ModuleInfo)info).createModule();
+            for (Entry<String,Object> e : result.getOutputs().entrySet())
+                module.setOutput(e.getKey(), e.getValue());
+            DisplayPostprocessor display = new DisplayPostprocessor();
+            display.setContext(context);
+            display.process(module);
+            
+        } catch (InterruptedException | ExecutionException | ModuleException e) {
             e.printStackTrace();
         }
     }
@@ -202,6 +210,7 @@ public class CommandFromMacro implements Command {
             }
         }
 
+        /*
         // designate assigned outputs to be shown
         for (final ModuleItem<?> item : info.outputs()) {
             final String name = item.getName();
@@ -217,6 +226,7 @@ public class CommandFromMacro implements Command {
                 e.printStackTrace();
             }
         }
+        */
 
         // manually build json dict string, replacing double quotes around
         // keys/values with single quotes to make the macro string look nicer
