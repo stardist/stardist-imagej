@@ -92,7 +92,8 @@ public abstract class StarDist2DBase {
     protected void exportROIs(Candidates polygons, int framePosition, long numFrames, String roiPosition) {
         final boolean isTimelapse = framePosition > 0;
         if (roiManager == null) {
-            roiManager = RoiManager.getRoiManager();
+            roiManager = RoiManager.getInstance();
+            if (roiManager == null) roiManager = new RoiManager();
             roiManager.reset(); // clear all rois
         }
 
