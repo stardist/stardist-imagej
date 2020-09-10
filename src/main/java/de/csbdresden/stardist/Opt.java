@@ -5,39 +5,39 @@ import java.util.Map;
 
 public class Opt {
     
-    static final String INPUT_IMAGE = "Input Image";
-    static final String PROB_IMAGE = "Probability/Score Image";
-    static final String DIST_IMAGE = "Distance Image";
-    static final String LABEL_IMAGE = "Label Image";
+    public static final String INPUT_IMAGE = "Input Image";
+    public static final String PROB_IMAGE = "Probability/Score Image";
+    public static final String DIST_IMAGE = "Distance Image";
+    public static final String LABEL_IMAGE = "Label Image";
     
-    static final String MODEL = "Model";
-    static final String MODEL_FILE = "Model (.zip) from File";
-    static final String MODEL_URL = "Model (.zip) from URL";
+    public static final String MODEL = "Model";
+    public static final String MODEL_FILE = "Model (.zip) from File";
+    public static final String MODEL_URL = "Model (.zip) from URL";
     
-    static final String NORMALIZE_IMAGE = "Normalize Image";
-    static final String PERCENTILE_LOW = "Percentile low";
-    static final String PERCENTILE_HIGH = "Percentile high";
+    public static final String NORMALIZE_IMAGE = "Normalize Image";
+    public static final String PERCENTILE_LOW = "Percentile low";
+    public static final String PERCENTILE_HIGH = "Percentile high";
     
-    static final String PROB_THRESH = "Probability/Score Threshold";
-    static final String NMS_THRESH = "Overlap Threshold";
+    public static final String PROB_THRESH = "Probability/Score Threshold";
+    public static final String NMS_THRESH = "Overlap Threshold";
     
-    static final String OUTPUT_TYPE = "Output Type";
-    static final String OUTPUT_ROI_MANAGER = "ROI Manager";
-    static final String OUTPUT_LABEL_IMAGE = "Label Image";
-    static final String OUTPUT_BOTH = "Both";    
-    static final String OUTPUT_POLYGONS = "Polygons";
+    public static final String OUTPUT_TYPE = "Output Type";
+    public static final String OUTPUT_ROI_MANAGER = "ROI Manager";
+    public static final String OUTPUT_LABEL_IMAGE = "Label Image";
+    public static final String OUTPUT_BOTH = "Both";    
+    public static final String OUTPUT_POLYGONS = "Polygons";
     
-    static final String NUM_TILES = "Number of Tiles";
-    static final String EXCLUDE_BNDRY = "Boundary Exclusion";
-    static final String ROI_POSITION = "ROI Position";
-    static final String ROI_POSITION_AUTO = "Automatic";
-    static final String ROI_POSITION_STACK = "Stack";
-    static final String ROI_POSITION_HYPERSTACK = "Hyperstack";
-    static final String VERBOSE = "Verbose";
-    static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
-    static final String SHOW_PROB_DIST = "Show CNN Output";
-    static final String SET_THRESHOLDS = "Set optimized postprocessing thresholds (for selected model)";    
-    static final String RESTORE_DEFAULTS = "Restore Defaults";
+    public static final String NUM_TILES = "Number of Tiles";
+    public static final String EXCLUDE_BNDRY = "Boundary Exclusion";
+    public static final String ROI_POSITION = "ROI Position";
+    public static final String ROI_POSITION_AUTO = "Automatic";
+    public static final String ROI_POSITION_STACK = "Stack";
+    public static final String ROI_POSITION_HYPERSTACK = "Hyperstack";
+    public static final String VERBOSE = "Verbose";
+    public static final String CSBDEEP_PROGRESS_WINDOW = "Show CNN Progress";
+    public static final String SHOW_PROB_DIST = "Show CNN Output";
+    public static final String SET_THRESHOLDS = "Set optimized postprocessing thresholds (for selected model)";    
+    public static final String RESTORE_DEFAULTS = "Restore Defaults";
     
     // TODO: add descriptions for all options
     
