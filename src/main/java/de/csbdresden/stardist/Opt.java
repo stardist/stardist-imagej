@@ -57,7 +57,6 @@ public class Opt {
         DEFAULTS.put(VERBOSE, false);
         DEFAULTS.put(CSBDEEP_PROGRESS_WINDOW, false);
         DEFAULTS.put(SHOW_PROB_DIST, false);
-        DEFAULTS.put(PREVIEW, false);
     }
     
     static Object getDefault(final String key) {

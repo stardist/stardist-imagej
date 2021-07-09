@@ -16,6 +16,7 @@ import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import ij.plugin.frame.RoiManager;
 import org.scijava.Cancelable;
@@ -23,7 +24,6 @@ import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.CommandModule;
-import org.scijava.command.Previewable;
 import org.scijava.menu.MenuConstants;
 import org.scijava.plugin.Menu;
 import org.scijava.plugin.Parameter;
@@ -52,7 +52,7 @@ import net.imglib2.view.Views;
         @Menu(label = "StarDist"),
         @Menu(label = "StarDist 2D", weight = 1)
 })
-public class StarDist2D extends StarDist2DBase implements Command, Previewable, Cancelable {
+public class StarDist2D extends StarDist2DBase implements Command, Cancelable {
 
     @Parameter(label="", visibility=ItemVisibility.MESSAGE, initializer="checkForCSBDeep")
     private final String msgTitle = "<html>" +
@@ -151,7 +151,7 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
     private Button restoreDefaults;
 
     @Parameter(label=Opt.PREVIEW, callback="preview")
-    private boolean preview = (boolean) Opt.getDefault(Opt.PREVIEW);
+    private Button preview;
 
     // ---------
 
@@ -169,7 +169,6 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
         showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
         showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
-        preview = (boolean) Opt.getDefault(Opt.PREVIEW);
     }
 
     private void percentileBottomChanged() {
@@ -421,26 +420,15 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
         params.put("nTiles", 1);
         params.put("excludeBoundary", 2);
         params.put("roiPosition", Opt.ROI_POSITION_AUTO);
-        params.put("preview", false);
 
         command.run(StarDist2D.class, false, params);
     }
 
-    @Override
     public void preview() {
-        if(preview) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::refresh);
+        } else {
             refresh();
-        } else {
-            cancel();
-        }
-    }
-
-    @Override
-    public void cancel() {
-        if (RoiManager.getInstance() == null) {
-            new RoiManager().reset();
-        } else {
-            RoiManager.getInstance().reset();
         }
     }
 
@@ -451,6 +439,11 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
 
     @Override
     public void cancel(String s) {
+        if (RoiManager.getInstance() == null) {
+            new RoiManager().reset();
+        } else {
+            RoiManager.getInstance().reset();
+        }
     }
 
     @Override
