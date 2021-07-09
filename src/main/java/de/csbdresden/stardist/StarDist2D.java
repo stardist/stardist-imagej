@@ -437,7 +437,11 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
 
     @Override
     public void cancel() {
-        RoiManager.getInstance().reset();
+        if (RoiManager.getInstance() == null) {
+            new RoiManager().reset();
+        } else {
+            RoiManager.getInstance().reset();
+        }
     }
 
     @Override
