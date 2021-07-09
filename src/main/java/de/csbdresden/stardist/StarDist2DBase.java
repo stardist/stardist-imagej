@@ -1,12 +1,8 @@
 package de.csbdresden.stardist;
 
-import java.awt.*;
 import java.net.URL;
 import java.util.List;
 
-import ij.Prefs;
-import ij.gui.Overlay;
-import ij.plugin.OverlayLabels;
 import org.scijava.app.StatusService;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
@@ -116,41 +112,12 @@ public abstract class StarDist2DBase {
                 roiManager.add(bboxRoi, -1);
             }
         }
-        if (roiManager.isVisible()) roiManager.repaint();
-        updateRoi();
+        if (roiManager.isVisible()) {
+            roiManager.repaint();
+            roiManager.runCommand("show all");
+        }
     }
 
-    private void updateRoi() {
-        Roi[] rois = roiManager.getRoisAsArray();
-        Overlay overlay = newOverlay();
-
-        for(int i = 0; i < rois.length; ++i) {
-            overlay.add(rois[i]);
-        }
-
-        roiManager.reset();
-        roiManager.setEditMode((ImagePlus)null, false);
-
-        for(int i = 0; i < overlay.size(); ++i) {
-            roiManager.add(overlay.get(i), i + 1);
-        }
-
-        roiManager.setEditMode((ImagePlus)null, true);
-        roiManager.runCommand("show all");
-    }
-
-    private Overlay newOverlay() {
-        Overlay overlay = OverlayLabels.createOverlay();
-        if (overlay.getLabelFont() == null && overlay.getLabelColor() == null) {
-            overlay.setLabelColor(Color.white);
-            overlay.drawBackgrounds(true);
-        }
-
-        overlay.drawNames(Prefs.useNamesAsLabels);
-
-        return overlay;
-    }
-    
     protected void setRoiPosition(Roi roi, int framePosition, String roiPosition) {
         switch (roiPosition) {
         case Opt.ROI_POSITION_STACK:
