@@ -24,6 +24,7 @@ import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
 import org.scijava.command.CommandModule;
+import org.scijava.command.Previewable;
 import org.scijava.menu.MenuConstants;
 import org.scijava.plugin.Menu;
 import org.scijava.plugin.Parameter;
@@ -52,7 +53,7 @@ import net.imglib2.view.Views;
         @Menu(label = "StarDist"),
         @Menu(label = "StarDist 2D", weight = 1)
 })
-public class StarDist2D extends StarDist2DBase implements Command, Cancelable {
+public class StarDist2D extends StarDist2DBase implements Command, Previewable, Cancelable {
 
     @Parameter(label="", visibility=ItemVisibility.MESSAGE, initializer="checkForCSBDeep")
     private final String msgTitle = "<html>" +
@@ -150,8 +151,11 @@ public class StarDist2D extends StarDist2DBase implements Command, Cancelable {
     @Parameter(label=Opt.RESTORE_DEFAULTS, callback="restoreDefaults")
     private Button restoreDefaults;
 
-    @Parameter(label=Opt.PREVIEW, callback="preview")
-    private Button preview;
+    @Parameter(label=Opt.PREVIEW)
+    private boolean preview = (boolean) Opt.getDefault(Opt.PREVIEW);
+
+//    @Parameter(label=Opt.PREVIEW, callback="refreshROI")
+//    private Button updateROI;
 
     // ---------
 
@@ -169,6 +173,7 @@ public class StarDist2D extends StarDist2DBase implements Command, Cancelable {
         verbose = (boolean) Opt.getDefault(Opt.VERBOSE);
         showCsbdeepProgress = (boolean) Opt.getDefault(Opt.CSBDEEP_PROGRESS_WINDOW);
         showProbAndDist = (boolean) Opt.getDefault(Opt.SHOW_PROB_DIST);
+        preview = (boolean) Opt.getDefault(Opt.PREVIEW);
     }
 
     private void percentileBottomChanged() {
@@ -424,12 +429,23 @@ public class StarDist2D extends StarDist2DBase implements Command, Cancelable {
         command.run(StarDist2D.class, false, params);
     }
 
-    public void preview() {
+    private void refreshROI() {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(this::refresh);
         } else {
             refresh();
         }
+    }
+
+    @Override
+    public void preview() {
+        if (preview) {
+            refreshROI();
+        }
+    }
+
+    @Override
+    public void cancel() {
     }
 
     @Override
