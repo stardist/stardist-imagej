@@ -7,6 +7,7 @@ import static de.csbdresden.stardist.StarDist2DModel.MODEL_HE_HEAVY_AUGMENTATION
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -17,6 +18,7 @@ import java.util.stream.IntStream;
 
 import javax.swing.JOptionPane;
 
+import net.imagej.axis.CalibratedAxis;
 import org.scijava.ItemIO;
 import org.scijava.ItemVisibility;
 import org.scijava.command.Command;
@@ -261,6 +263,14 @@ public class StarDist2D extends StarDist2DBase implements Command {
             final LinkedHashSet<AxisType> inputAxes = Utils.orderedAxesSet(input);
             final boolean isTimelapse = inputAxes.contains(Axes.TIME);
 
+            // save image calibration for result (apart from channel)
+            ArrayList<CalibratedAxis> calibratedAxis = new ArrayList<CalibratedAxis>();
+            for (int i = 0; i < input.numDimensions(); i++) {
+                if (!(input.axis(i).type()==Axes.CHANNEL)) {
+                    calibratedAxis.add(input.axis(i));
+                }
+            }
+
             // TODO: option to normalize image/timelapse channel by channel or all channels jointly
 
             if (true && isTimelapse) {
@@ -318,6 +328,10 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                 label = (Dataset) futureNMS.get().getOutput("label");
             }
+
+            // set image calibration (pixelsizes)
+            label.setAxes(calibratedAxis.toArray(new CalibratedAxis[calibratedAxis.size()]));
+
             // call at the end of the run() method
             CommandFromMacro.record(this, this.command);
             
@@ -388,9 +402,10 @@ public class StarDist2D extends StarDist2DBase implements Command {
         final ImageJ ij = new ImageJ();
         ij.launch(args);
 
-        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
-//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
-//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("patho_hyperstack.tif").getFile());
+        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_fluo.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_fluo_timelapse.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_histo.tif").getFile());
+
         ij.ui().show(input);
         
 //        Recorder recorder = new Recorder();
