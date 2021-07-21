@@ -416,14 +416,14 @@ public class StarDist2D extends StarDist2DBase implements Command, Previewable, 
 
         params.put("input", input);
         params.put("modelChoice", modelChoice);
-        params.put("normalizeInput", true);
+        params.put("normalizeInput", normalizeInput);
         params.put("percentileBottom", percentileBottom);
         params.put("percentileTop", percentileTop);
         params.put("probThresh", probThresh);
         params.put("nmsThresh", nmsThresh);
         params.put("outputType", "ROI Manager");
-        params.put("nTiles", 1);
-        params.put("excludeBoundary", 2);
+        params.put("nTiles", nTiles);
+        params.put("excludeBoundary", excludeBoundary);
         params.put("roiPosition", Opt.ROI_POSITION_AUTO);
 
         command.run(StarDist2D.class, false, params);
