@@ -112,6 +112,9 @@
 		<main-class>de.csbdresden.stardist.StarDist2D</main-class>
 		<license.licenseName>bsd_3</license.licenseName>
 		<license.copyrightOwners>Uwe Schmidt, Martin Weigert</license.copyrightOwners>
+
+		<!-- NB: Deploy releases to the SciJava Maven repository. -->
+		<releaseProfiles>sign,deploy-to-scijava</releaseProfiles>
 	</properties>
 
 	<repositories>
