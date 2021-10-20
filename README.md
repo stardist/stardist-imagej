@@ -1,4 +1,4 @@
-[![](https://github.com/mpicbg-csbd/stardist-imagej/actions/workflows/build-main.yml/badge.svg)](https://github.com/mpicbg-csbd/stardist-imagej/actions/workflows/build-main.yml)
+[![build](https://github.com/stardist/stardist-imagej/actions/workflows/build-main.yml/badge.svg)](https://github.com/stardist/stardist-imagej/actions/workflows/build-main.yml)
 
 # StarDist ImageJ/Fiji Plugin
 
