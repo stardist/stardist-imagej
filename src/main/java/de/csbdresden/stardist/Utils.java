@@ -88,6 +88,7 @@ public class Utils {
     }
 
     public static void copyCalibration(final Dataset source, final Dataset target, final AxisType... axes) {
+        if (target == null) return;
         final Map<AxisType, Integer> axisToDim = new HashMap<>(target.numDimensions());
         for (int d = 0; d < target.numDimensions(); d++)
             axisToDim.put(target.axis(d).type(), d);
