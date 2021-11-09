@@ -1,3 +1,5 @@
+[![build](https://github.com/stardist/stardist-imagej/actions/workflows/build-main.yml/badge.svg)](https://github.com/stardist/stardist-imagej/actions/workflows/build-main.yml)
+
 # StarDist ImageJ/Fiji Plugin
 
 This is the ImageJ/Fiji plugin for [StarDist](https://github.com/mpicbg-csbd/stardist), which can be used to apply already trained models to new images.  
