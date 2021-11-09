@@ -3,8 +3,10 @@ package de.csbdresden.stardist;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import de.lighti.clipper.Path;
@@ -83,6 +85,15 @@ public class Utils {
 
     public static Dataset raiToDataset(final DatasetService dataset, final String name, final RandomAccessibleInterval rai, final Collection<AxisType> axesCollection) {
         return raiToDataset(dataset, name, rai, axesCollection.stream());
+    }
+
+    public static void copyCalibration(final Dataset source, final Dataset target, final AxisType... axes) {
+        if (target == null) return;
+        final Map<AxisType, Integer> axisToDim = new HashMap<>(target.numDimensions());
+        for (int d = 0; d < target.numDimensions(); d++)
+            axisToDim.put(target.axis(d).type(), d);
+        for (AxisType a : axes)
+            target.setAxis(source.axis(a).get().copy(), axisToDim.get(a));
     }
 
 }

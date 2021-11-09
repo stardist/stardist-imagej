@@ -260,6 +260,7 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
             final LinkedHashSet<AxisType> inputAxes = Utils.orderedAxesSet(input);
             final boolean isTimelapse = inputAxes.contains(Axes.TIME);
+            final AxisType[] axesOut = isTimelapse ? new AxisType[]{Axes.X, Axes.Y, Axes.TIME} : new AxisType[]{Axes.X, Axes.Y};
 
             // TODO: option to normalize image/timelapse channel by channel or all channels jointly
 
@@ -313,11 +314,17 @@ public class StarDist2D extends StarDist2DBase implements Command {
                 if (showProbAndDist) {
                     prob = probDS;
                     dist = distDS;
+                    Utils.copyCalibration(input, prob, axesOut);
+                    Utils.copyCalibration(input, dist, axesOut);
                 }
 
                 final Future<CommandModule> futureNMS = command.run(StarDist2DNMS.class, false, paramsNMS);
                 label = (Dataset) futureNMS.get().getOutput("label");
             }
+            
+            // copy axis calibration from input
+            Utils.copyCalibration(input, label, axesOut);
+            
             // call at the end of the run() method
             CommandFromMacro.record(this, this.command);
             
@@ -390,12 +397,17 @@ public class StarDist2D extends StarDist2DBase implements Command {
 
         Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_crop.tif").getFile());
 //        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("yeast_timelapse.tif").getFile());
-//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("patho_hyperstack.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("patho_hyperstack.tif").getFile());        
+
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_fluo.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_fluo_timelapse.tif").getFile());
+//        Dataset input = ij.scifio().datasetIO().open(StarDist2D.class.getClassLoader().getResource("data/test_image_histo.tif").getFile());
+        
         ij.ui().show(input);
         
 //        Recorder recorder = new Recorder();
 //        recorder.show();
-
+        
         final HashMap<String, Object> params = new HashMap<>();
         ij.command().run(StarDist2D.class, true, params);
     }

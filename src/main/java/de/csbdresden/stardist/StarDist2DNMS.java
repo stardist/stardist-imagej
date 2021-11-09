@@ -96,6 +96,7 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         final LinkedHashSet<AxisType> probAxes = Utils.orderedAxesSet(prob);
         final LinkedHashSet<AxisType> distAxes = Utils.orderedAxesSet(dist);
         final boolean isTimelapse = probAxes.contains(Axes.TIME);
+        final AxisType[] axesOut = isTimelapse ? new AxisType[]{Axes.X, Axes.Y, Axes.TIME} : new AxisType[]{Axes.X, Axes.Y};
 
         if (isTimelapse) {
             final int probTimeDim = IntStream.range(0, probAxes.size()).filter(d -> prob.axis(d).type() == Axes.TIME).findFirst().getAsInt();
@@ -118,6 +119,9 @@ public class StarDist2DNMS extends StarDist2DBase implements Command {
         }
 
         label = labelImageToDataset(outputType);
+
+        // copy axis calibration from prob
+        Utils.copyCalibration(prob, label, axesOut);
 
         // call at the end of the run() method
         CommandFromMacro.record(this, this.command);
