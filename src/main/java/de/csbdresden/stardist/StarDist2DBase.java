@@ -40,7 +40,7 @@ public abstract class StarDist2DBase {
 
     @Parameter
     protected StatusService status;
-    
+
     @Parameter
     protected LUTService lut;
 
@@ -91,11 +91,8 @@ public abstract class StarDist2DBase {
 
     protected void exportROIs(Candidates polygons, int framePosition, long numFrames, String roiPosition) {
         final boolean isTimelapse = framePosition > 0;
-        if (roiManager == null) {
-            roiManager = RoiManager.getInstance();
-            if (roiManager == null) roiManager = new RoiManager();
-            roiManager.reset(); // clear all rois
-        }
+	roiManager = RoiManager.getInstance();
+	if (roiManager == null) roiManager = new RoiManager();
 
         for (final int i : polygons.getWinner()) {
             final PolygonRoi polyRoi = polygons.getPolygonRoi(i);
@@ -114,7 +111,7 @@ public abstract class StarDist2DBase {
         }
         if (roiManager.isVisible()) roiManager.repaint();
     }
-    
+
     protected void setRoiPosition(Roi roi, int framePosition, String roiPosition) {
         switch (roiPosition) {
         case Opt.ROI_POSITION_STACK:
@@ -159,9 +156,9 @@ public abstract class StarDist2DBase {
             final Img labelImg = (Img) ImageJFunctions.wrap(labelImage);
             final AxisType[] axes = isTimelapse ? new AxisType[]{Axes.X, Axes.Y, Axes.TIME} : new AxisType[]{Axes.X, Axes.Y};
             final Dataset ds = Utils.raiToDataset(dataset, Opt.LABEL_IMAGE, labelImg, axes);
-            // set LUT 
+            // set LUT
             try {
-                ds.initializeColorTables(1);                
+                ds.initializeColorTables(1);
                 // ds.setColorTable(lut.loadLUT(lut.findLUTs().get("StarDist.lut")), 0);
                 ds.setColorTable(lut.loadLUT(getResource("luts/StarDist.lut")), 0);
                 ds.setChannelMinimum(0, 0);
@@ -173,6 +170,6 @@ public abstract class StarDist2DBase {
             return ds;
         } else {
             return null;
-        }        
+        }
     }
 }
